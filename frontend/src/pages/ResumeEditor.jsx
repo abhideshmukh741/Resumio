@@ -50,13 +50,13 @@ const DEFAULT_FRESHER_RESUME = {
       graduationYear: 'Expected Graduation: 2027'
     }
   ],
-  technicalSkills: {
-    languages: 'C, Java, Python',
-    webTech: 'HTML5, CSS, JavaScript',
-    database: 'MySQL',
-    problemSolving: 'Data Structures and Algorithms (DSA)',
-    tools: 'Microsoft Office Suite, GitHub, VS Code'
-  },
+  technicalSkills: [
+    { id: 'languages', category: 'Programming Languages', skills: 'C, Java, Python' },
+    { id: 'webTech', category: 'Web Technologies', skills: 'HTML5, CSS, JavaScript' },
+    { id: 'database', category: 'Database', skills: 'MySQL' },
+    { id: 'problemSolving', category: 'Problem Solving', skills: 'Data Structures and Algorithms (DSA)' },
+    { id: 'tools', category: 'Tools & Platforms', skills: 'Microsoft Office Suite, GitHub, VS Code' }
+  ],
   projects: [
     {
       title: 'Hydro Cal Pro – Major Project',
@@ -81,6 +81,17 @@ const DEFAULT_FRESHER_RESUME = {
   strengths: ['Team Collaboration', 'Communication', 'Analytical Thinking', 'Time Management'],
   languages: 'English, Hindi, Marathi',
   hobbies: ['Car Enthusiast', 'Cooking', 'Walking'],
+  experience: [
+    {
+      company: 'Tech Solutions Ltd',
+      role: 'Software Developer Intern',
+      duration: 'Jun 2025 – Aug 2025',
+      bullets: [
+        'Built full-stack web applications using React and Node.js.',
+        'Optimized database queries and API response times by 30%.'
+      ]
+    }
+  ],
   enabledSections: {
     summary: true,
     education: true,
@@ -100,6 +111,23 @@ const DEFAULT_FRESHER_RESUME = {
   ]
 };
 
+const normalizeSkillsList = (skillsData) => {
+  if (!skillsData) return [];
+  if (Array.isArray(skillsData)) return skillsData;
+  const categoryMap = {
+    languages: 'Programming Languages',
+    webTech: 'Web Technologies',
+    database: 'Database',
+    problemSolving: 'Problem Solving',
+    tools: 'Tools & Platforms'
+  };
+  return Object.entries(skillsData).map(([key, val]) => ({
+    id: key,
+    category: categoryMap[key] || key,
+    skills: typeof val === 'string' ? val : (Array.isArray(val) ? val.join(', ') : '')
+  }));
+};
+
 export default function ResumeEditor() {
   const [resume, setResume] = useState({});
   const [loading, setLoading] = useState(true);
@@ -113,14 +141,15 @@ export default function ResumeEditor() {
   const [personalInfo, setPersonalInfo] = useState(DEFAULT_FRESHER_RESUME.personalInfo);
   const [summary, setSummary] = useState(DEFAULT_FRESHER_RESUME.summary);
   const [education, setEducation] = useState(DEFAULT_FRESHER_RESUME.education);
-  const [technicalSkills, setTechnicalSkills] = useState(DEFAULT_FRESHER_RESUME.technicalSkills);
+  const [technicalSkills, setTechnicalSkills] = useState(normalizeSkillsList(DEFAULT_FRESHER_RESUME.technicalSkills));
   const [projects, setProjects] = useState(DEFAULT_FRESHER_RESUME.projects);
+  const [experience, setExperience] = useState(DEFAULT_FRESHER_RESUME.experience || []);
   const [certifications, setCertifications] = useState(DEFAULT_FRESHER_RESUME.certifications);
   const [strengths, setStrengths] = useState(DEFAULT_FRESHER_RESUME.strengths);
   const [languages, setLanguages] = useState(DEFAULT_FRESHER_RESUME.languages);
   const [hobbies, setHobbies] = useState(DEFAULT_FRESHER_RESUME.hobbies);
   const [enabledSections, setEnabledSections] = useState(DEFAULT_FRESHER_RESUME.enabledSections);
-  const [customSections, setCustomSections] = useState(DEFAULT_FRESHER_RESUME.customSections);
+  const [customSections, setCustomSections] = useState(DEFAULT_FRESHER_RESUME.customSections || []);
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -148,8 +177,9 @@ export default function ResumeEditor() {
         if (data.personalInfo) setPersonalInfo(data.personalInfo);
         if (data.summary !== undefined) setSummary(data.summary);
         if (data.education) setEducation(data.education);
-        if (data.technicalSkills) setTechnicalSkills(data.technicalSkills);
+        if (data.technicalSkills) setTechnicalSkills(normalizeSkillsList(data.technicalSkills));
         if (data.projects) setProjects(data.projects);
+        if (data.experience) setExperience(data.experience);
         if (data.certifications) setCertifications(data.certifications);
         if (data.strengths) setStrengths(data.strengths);
         if (data.languages) setLanguages(data.languages);
@@ -176,6 +206,7 @@ export default function ResumeEditor() {
     education,
     technicalSkills,
     projects,
+    experience,
     certifications,
     strengths,
     languages,
@@ -204,21 +235,77 @@ export default function ResumeEditor() {
     }));
   };
 
+  // Sub-section item management
+  const handleAddEducation = () => {
+    setEducation([
+      ...(education || []),
+      { degree: '', college: '', university: '', cgpa: '', graduationYear: '' }
+    ]);
+  };
+
+  const handleRemoveEducation = (idx) => {
+    setEducation((education || []).filter((_, i) => i !== idx));
+  };
+
+  const handleAddProject = () => {
+    setProjects([
+      ...(projects || []),
+      { title: '', technologies: '', bullets: [''] }
+    ]);
+  };
+
+  const handleRemoveProject = (idx) => {
+    setProjects((projects || []).filter((_, i) => i !== idx));
+  };
+
+  const handleAddExperience = () => {
+    setExperience([
+      ...(experience || []),
+      { company: '', role: '', duration: '', bullets: [''] }
+    ]);
+  };
+
+  const handleRemoveExperience = (idx) => {
+    setExperience((experience || []).filter((_, i) => i !== idx));
+  };
+
+  const handleAddSkillCategory = () => {
+    const newCat = {
+      id: `skill-${Date.now()}`,
+      category: 'New Skill Category',
+      skills: 'Skill 1, Skill 2'
+    };
+    setTechnicalSkills([
+      ...(Array.isArray(technicalSkills) ? technicalSkills : normalizeSkillsList(technicalSkills)),
+      newCat
+    ]);
+  };
+
+  const handleRemoveSkillCategory = (idx) => {
+    const currentList = Array.isArray(technicalSkills) ? technicalSkills : normalizeSkillsList(technicalSkills);
+    setTechnicalSkills(currentList.filter((_, i) => i !== idx));
+  };
+
+  const handleUpdateSkillCategory = (idx, field, value) => {
+    const currentList = Array.isArray(technicalSkills) ? technicalSkills : normalizeSkillsList(technicalSkills);
+    setTechnicalSkills(currentList.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+  };
+
   const handleAddCustomSection = () => {
     const newSec = {
       id: `custom-${Date.now()}`,
-      title: 'New Section',
+      title: 'New Custom Section',
       content: '• Add details here'
     };
-    setCustomSections([...customSections, newSec]);
+    setCustomSections([...(customSections || []), newSec]);
   };
 
   const handleRemoveCustomSection = (id) => {
-    setCustomSections(customSections.filter(s => s.id !== id));
+    setCustomSections((customSections || []).filter(s => s.id !== id));
   };
 
   const handleUpdateCustomSection = (id, key, value) => {
-    setCustomSections(customSections.map(s => s.id === id ? { ...s, [key]: value } : s));
+    setCustomSections((customSections || []).map(s => s.id === id ? { ...s, [key]: value } : s));
   };
 
   const handleAISubmit = async (e) => {
@@ -269,7 +356,12 @@ export default function ResumeEditor() {
   };
 
   const handlePrint = () => {
-    window.print();
+    // Scroll to top so the resume preview starts from the beginning
+    window.scrollTo(0, 0);
+    // Small delay to let the browser apply print styles properly
+    setTimeout(() => {
+      window.print();
+    }, 300);
   };
 
   const zoomIn = () => setZoom(prev => Math.min(prev + 0.1, 1.4));
@@ -544,11 +636,22 @@ export default function ResumeEditor() {
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold uppercase tracking-wider text-gray-600">Education Details</label>
                     <button onClick={() => toggleSection('education')} className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-medium">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                      <Trash2 className="w-3.5 h-3.5" /> Delete Section
                     </button>
                   </div>
-                  {education.map((edu, idx) => (
-                    <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200 space-y-2">
+                  {(education || []).map((edu, idx) => (
+                    <div key={idx} className="bg-white p-3 rounded-lg border border-gray-200 space-y-2 relative">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-gray-500">Education #{idx + 1}</span>
+                        {(education || []).length > 1 && (
+                          <button
+                            onClick={() => handleRemoveEducation(idx)}
+                            className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Remove
+                          </button>
+                        )}
+                      </div>
                       <div>
                         <label className="block text-xs text-gray-500 mb-1 font-medium">Degree & Branch</label>
                         <input
@@ -618,6 +721,95 @@ export default function ResumeEditor() {
                       </div>
                     </div>
                   ))}
+                  <button
+                    onClick={handleAddEducation}
+                    className="w-full py-2 border border-dashed border-blue-400 text-blue-600 font-semibold text-xs rounded-lg hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> + Add Education Entry
+                  </button>
+                </div>
+              )}
+
+              {/* Work Experience */}
+              {enabledSections.experience && (
+                <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-xs uppercase tracking-wider text-gray-600">Work Experience</h3>
+                    <button onClick={() => toggleSection('experience')} className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-medium">
+                      <Trash2 className="w-3.5 h-3.5" /> Delete Section
+                    </button>
+                  </div>
+                  {(experience || []).map((exp, expIdx) => (
+                    <div key={expIdx} className="bg-white p-3 rounded-lg border border-gray-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-gray-500">Experience #{expIdx + 1}</span>
+                        <button
+                          onClick={() => handleRemoveExperience(expIdx)}
+                          className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Remove
+                        </button>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Company / Organization</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+                          value={exp.company || ''}
+                          onChange={e => {
+                            const copy = [...(experience || [])];
+                            copy[expIdx].company = e.target.value;
+                            setExperience(copy);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Job Title / Role</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm font-semibold"
+                          value={exp.role || ''}
+                          onChange={e => {
+                            const copy = [...(experience || [])];
+                            copy[expIdx].role = e.target.value;
+                            setExperience(copy);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Duration (e.g. Jun 2024 - Present)</label>
+                        <input
+                          type="text"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+                          value={exp.duration || ''}
+                          onChange={e => {
+                            const copy = [...(experience || [])];
+                            copy[expIdx].duration = e.target.value;
+                            setExperience(copy);
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Bullet Points (one per line)</label>
+                        <textarea
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm"
+                          rows="3"
+                          value={(exp.bullets || []).join('\n')}
+                          onChange={e => {
+                            const copy = [...(experience || [])];
+                            copy[expIdx].bullets = e.target.value.split('\n');
+                            setExperience(copy);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={handleAddExperience}
+                    className="w-full py-2 border border-dashed border-blue-400 text-blue-600 font-semibold text-xs rounded-lg hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> + Add Experience Entry
+                  </button>
                 </div>
               )}
 
@@ -627,56 +819,46 @@ export default function ResumeEditor() {
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-xs uppercase tracking-wider text-gray-600">Technical Skills</h3>
                     <button onClick={() => toggleSection('technicalSkills')} className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-medium">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                      <Trash2 className="w-3.5 h-3.5" /> Delete Section
                     </button>
                   </div>
-                  <div className="space-y-2">
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Programming Languages</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
-                        value={technicalSkills.languages || ''}
-                        onChange={e => setTechnicalSkills({ ...technicalSkills, languages: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Web Technologies</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
-                        value={technicalSkills.webTech || ''}
-                        onChange={e => setTechnicalSkills({ ...technicalSkills, webTech: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Database</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
-                        value={technicalSkills.database || ''}
-                        onChange={e => setTechnicalSkills({ ...technicalSkills, database: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Problem Solving</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
-                        value={technicalSkills.problemSolving || ''}
-                        onChange={e => setTechnicalSkills({ ...technicalSkills, problemSolving: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Tools & Platforms</label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
-                        value={technicalSkills.tools || ''}
-                        onChange={e => setTechnicalSkills({ ...technicalSkills, tools: e.target.value })}
-                      />
-                    </div>
+                  <div className="space-y-3">
+                    {(Array.isArray(technicalSkills) ? technicalSkills : normalizeSkillsList(technicalSkills)).map((sk, skIdx) => (
+                      <div key={sk.id || skIdx} className="bg-white p-3 rounded-lg border border-gray-200 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <input
+                            type="text"
+                            className="font-bold text-xs text-blue-900 bg-gray-50 border border-gray-300 rounded px-2.5 py-1 w-2/3 outline-none"
+                            value={sk.category || ''}
+                            onChange={e => handleUpdateSkillCategory(skIdx, 'category', e.target.value)}
+                            placeholder="Category (e.g. Programming Languages)"
+                          />
+                          <button
+                            onClick={() => handleRemoveSkillCategory(skIdx)}
+                            className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Remove
+                          </button>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Skills (comma separated)</label>
+                          <input
+                            type="text"
+                            className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-sm bg-white"
+                            value={sk.skills || ''}
+                            onChange={e => handleUpdateSkillCategory(skIdx, 'skills', e.target.value)}
+                            placeholder="e.g. C, Java, Python"
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
+                  <button
+                    onClick={handleAddSkillCategory}
+                    className="w-full py-2 border border-dashed border-blue-400 text-blue-600 font-semibold text-xs rounded-lg hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> + Add Skill Category / Sub-Section
+                  </button>
                 </div>
               )}
 
@@ -686,11 +868,22 @@ export default function ResumeEditor() {
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-xs uppercase tracking-wider text-gray-600">Projects</h3>
                     <button onClick={() => toggleSection('projects')} className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-medium">
-                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                      <Trash2 className="w-3.5 h-3.5" /> Delete Section
                     </button>
                   </div>
-                  {projects.map((proj, pIdx) => (
+                  {(projects || []).map((proj, pIdx) => (
                     <div key={pIdx} className="bg-white p-3 rounded-lg border border-gray-200 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-gray-500">Project #{pIdx + 1}</span>
+                        {(projects || []).length > 1 && (
+                          <button
+                            onClick={() => handleRemoveProject(pIdx)}
+                            className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Remove
+                          </button>
+                        )}
+                      </div>
                       <div>
                         <label className="block text-xs text-gray-500 mb-1">Project Title</label>
                         <input
@@ -732,6 +925,12 @@ export default function ResumeEditor() {
                       </div>
                     </div>
                   ))}
+                  <button
+                    onClick={handleAddProject}
+                    className="w-full py-2 border border-dashed border-blue-400 text-blue-600 font-semibold text-xs rounded-lg hover:bg-blue-50 transition flex items-center justify-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> + Add Project Entry
+                  </button>
                 </div>
               )}
 
@@ -802,13 +1001,13 @@ export default function ResumeEditor() {
               )}
 
               {/* DYNAMIC CUSTOM SECTIONS */}
-              {customSections.length > 0 && (
+              {(customSections || []).length > 0 && (
                 <div className="space-y-4">
                   <h3 className="font-bold text-sm text-gray-800 flex items-center gap-2">
                     <Layers className="w-4 h-4 text-purple-600" />
                     Custom Sections
                   </h3>
-                  {customSections.map((sec) => (
+                  {(customSections || []).map((sec) => (
                     <div key={sec.id} className="bg-purple-50/50 border border-purple-200 p-4 rounded-xl space-y-3">
                       <div className="flex items-center justify-between">
                         <input
@@ -1057,16 +1256,38 @@ export default function ResumeEditor() {
                       </div>
                     )}
 
+                    {/* Work Experience */}
+                    {enabledSections.experience && experience && experience.length > 0 && (
+                      <div>
+                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-2">Work Experience</h2>
+                        {experience.map((exp, idx) => (
+                          <div key={idx} className="mb-2 space-y-0.5">
+                            <div className="font-bold text-gray-900 flex justify-between">
+                              <span>{exp.role} {exp.company ? `— ${exp.company}` : ''}</span>
+                              {exp.duration && <span className="font-normal text-xs text-gray-700">{exp.duration}</span>}
+                            </div>
+                            {exp.bullets && (
+                              <ul className="list-disc list-inside text-xs text-gray-800 space-y-0.5 pl-1">
+                                {exp.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Technical Skills */}
                     {enabledSections.technicalSkills && technicalSkills && (
                       <div>
                         <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-2">Technical Skills</h2>
                         <div className="space-y-1 text-xs">
-                          {technicalSkills.languages && <div><strong className="text-gray-900 font-bold">Programming Languages:</strong> {technicalSkills.languages}</div>}
-                          {technicalSkills.webTech && <div><strong className="text-gray-900 font-bold">Web Technologies:</strong> {technicalSkills.webTech}</div>}
-                          {technicalSkills.database && <div><strong className="text-gray-900 font-bold">Database:</strong> {technicalSkills.database}</div>}
-                          {technicalSkills.problemSolving && <div><strong className="text-gray-900 font-bold">Problem Solving:</strong> {technicalSkills.problemSolving}</div>}
-                          {technicalSkills.tools && <div><strong className="text-gray-900 font-bold">Tools:</strong> {technicalSkills.tools}</div>}
+                          {normalizeSkillsList(technicalSkills).map((item, idx) => (
+                            item.skills ? (
+                              <div key={idx}>
+                                <strong className="text-gray-900 font-bold">{item.category || 'Skills'}:</strong> {item.skills}
+                              </div>
+                            ) : null
+                          ))}
                         </div>
                       </div>
                     )}
@@ -1100,7 +1321,7 @@ export default function ResumeEditor() {
                     )}
 
                     {/* Custom Sections */}
-                    {customSections.map(sec => (
+                    {(customSections || []).map(sec => (
                       <div key={sec.id}>
                         <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-1.5">{sec.title}</h2>
                         <div className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">{sec.content}</div>
@@ -1152,15 +1373,35 @@ export default function ResumeEditor() {
                         ))}
                       </div>
                     )}
+                    {enabledSections.experience && experience && experience.length > 0 && (
+                      <div>
+                        <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Work Experience</h2>
+                        {experience.map((exp, idx) => (
+                          <div key={idx} className="text-xs mb-2">
+                            <div className="font-bold text-gray-900 flex justify-between">
+                              <span>{exp.role} {exp.company ? `- ${exp.company}` : ''}</span>
+                              <span className="text-gray-500 font-normal">{exp.duration}</span>
+                            </div>
+                            {exp.bullets && (
+                              <ul className="list-disc list-inside text-gray-600 mt-0.5">
+                                {exp.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {enabledSections.technicalSkills && technicalSkills && (
                       <div>
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Technical Skills</h2>
                         <div className="text-xs text-gray-700 space-y-0.5">
-                          {technicalSkills.languages && <div><strong>Languages:</strong> {technicalSkills.languages}</div>}
-                          {technicalSkills.webTech && <div><strong>Web:</strong> {technicalSkills.webTech}</div>}
-                          {technicalSkills.database && <div><strong>Database:</strong> {technicalSkills.database}</div>}
-                          {technicalSkills.problemSolving && <div><strong>Problem Solving:</strong> {technicalSkills.problemSolving}</div>}
-                          {technicalSkills.tools && <div><strong>Tools:</strong> {technicalSkills.tools}</div>}
+                          {normalizeSkillsList(technicalSkills).map((item, idx) => (
+                            item.skills ? (
+                              <div key={idx}>
+                                <strong>{item.category || 'Skills'}:</strong> {item.skills}
+                              </div>
+                            ) : null
+                          ))}
                         </div>
                       </div>
                     )}
@@ -1188,7 +1429,7 @@ export default function ResumeEditor() {
                         </ul>
                       </div>
                     )}
-                    {customSections.map(sec => (
+                    {(customSections || []).map(sec => (
                       <div key={sec.id}>
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">{sec.title}</h2>
                         <div className="text-xs text-gray-700 whitespace-pre-wrap">{sec.content}</div>
@@ -1236,14 +1477,35 @@ export default function ResumeEditor() {
                         ))}
                       </div>
                     )}
+                    {enabledSections.experience && experience && experience.length > 0 && (
+                      <div>
+                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Work Experience</h2>
+                        {experience.map((exp, idx) => (
+                          <div key={idx} className="mb-2 text-xs">
+                            <div className="font-bold text-slate-900 flex justify-between">
+                              <span>{exp.role} {exp.company ? `— ${exp.company}` : ''}</span>
+                              <span className="text-slate-500 font-normal">{exp.duration}</span>
+                            </div>
+                            {exp.bullets && (
+                              <ul className="list-disc list-inside text-gray-700 mt-0.5">
+                                {exp.bullets.map((b, i) => b.trim() && <li key={i}>{b}</li>)}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {enabledSections.technicalSkills && technicalSkills && (
                       <div>
                         <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Technical Skills</h2>
                         <div className="text-xs text-gray-700 space-y-0.5">
-                          {technicalSkills.languages && <div><strong>Languages:</strong> {technicalSkills.languages}</div>}
-                          {technicalSkills.webTech && <div><strong>Web:</strong> {technicalSkills.webTech}</div>}
-                          {technicalSkills.database && <div><strong>Database:</strong> {technicalSkills.database}</div>}
-                          {technicalSkills.tools && <div><strong>Tools:</strong> {technicalSkills.tools}</div>}
+                          {normalizeSkillsList(technicalSkills).map((item, idx) => (
+                            item.skills ? (
+                              <div key={idx}>
+                                <strong>{item.category || 'Skills'}:</strong> {item.skills}
+                              </div>
+                            ) : null
+                          ))}
                         </div>
                       </div>
                     )}
@@ -1271,7 +1533,7 @@ export default function ResumeEditor() {
                         </ul>
                       </div>
                     )}
-                    {customSections.map(sec => (
+                    {(customSections || []).map(sec => (
                       <div key={sec.id}>
                         <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">{sec.title}</h2>
                         <div className="text-xs text-gray-700 whitespace-pre-wrap">{sec.content}</div>
@@ -1306,10 +1568,13 @@ export default function ResumeEditor() {
                       {enabledSections.technicalSkills && technicalSkills && (
                         <div className="space-y-2 text-xs">
                           <h3 className="text-xs font-bold text-purple-400 uppercase tracking-wider border-b border-gray-700 pb-1">Skills</h3>
-                          {technicalSkills.languages && <p className="text-gray-300"><strong>Languages:</strong> {technicalSkills.languages}</p>}
-                          {technicalSkills.webTech && <p className="text-gray-300"><strong>Web:</strong> {technicalSkills.webTech}</p>}
-                          {technicalSkills.database && <p className="text-gray-300"><strong>DB:</strong> {technicalSkills.database}</p>}
-                          {technicalSkills.tools && <p className="text-gray-300"><strong>Tools:</strong> {technicalSkills.tools}</p>}
+                          {normalizeSkillsList(technicalSkills).map((item, idx) => (
+                            item.skills ? (
+                              <p key={idx} className="text-gray-300">
+                                <strong>{item.category || 'Skills'}:</strong> {item.skills}
+                              </p>
+                            ) : null
+                          ))}
                         </div>
                       )}
                       {enabledSections.strengths && strengths && (
@@ -1348,6 +1613,24 @@ export default function ResumeEditor() {
                           ))}
                         </div>
                       )}
+                      {enabledSections.experience && experience && experience.length > 0 && (
+                        <div>
+                          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">Work Experience</h2>
+                          {experience.map((exp, idx) => (
+                            <div key={idx} className="text-xs mb-2">
+                              <div className="font-bold text-gray-900 flex justify-between">
+                                <span>{exp.role} {exp.company ? `— ${exp.company}` : ''}</span>
+                                <span className="text-gray-500 font-normal">{exp.duration}</span>
+                              </div>
+                              {exp.bullets && (
+                                <ul className="list-disc list-inside text-gray-600 mt-0.5">
+                                  {exp.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       {enabledSections.projects && projects && (
                         <div>
                           <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">Projects</h2>
@@ -1372,7 +1655,7 @@ export default function ResumeEditor() {
                           </ul>
                         </div>
                       )}
-                      {customSections.map(sec => (
+                      {(customSections || []).map(sec => (
                         <div key={sec.id}>
                           <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">{sec.title}</h2>
                           <div className="text-xs text-gray-700 whitespace-pre-wrap">{sec.content}</div>

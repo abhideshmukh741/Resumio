@@ -47,13 +47,21 @@ export default function KeywordOptimizer() {
     // 1. Append missing keywords to technical skills
     if (result.missing_but_relevant?.length > 0) {
       const missingStr = result.missing_but_relevant.join(', ');
-      if (typeof updated.technicalSkills === 'object' && updated.technicalSkills !== null) {
+      if (Array.isArray(updated.technicalSkills)) {
+        const toolsIndex = updated.technicalSkills.findIndex(s => s.category && s.category.toLowerCase().includes('tool'));
+        if (toolsIndex >= 0) {
+          const curr = updated.technicalSkills[toolsIndex].skills;
+          updated.technicalSkills[toolsIndex].skills = curr ? `${curr}, ${missingStr}` : missingStr;
+        } else {
+          updated.technicalSkills.push({ id: `tools-${Date.now()}`, category: 'Tools & Platforms', skills: missingStr });
+        }
+      } else if (typeof updated.technicalSkills === 'object' && updated.technicalSkills !== null) {
         const currentTools = updated.technicalSkills.tools || '';
         updated.technicalSkills.tools = currentTools ? `${currentTools}, ${missingStr}` : missingStr;
       } else if (typeof updated.skills === 'string') {
         updated.skills = updated.skills ? `${updated.skills}, ${missingStr}` : missingStr;
       } else {
-        updated.technicalSkills = { tools: missingStr };
+        updated.technicalSkills = [{ id: 'tools', category: 'Tools & Platforms', skills: missingStr }];
       }
     }
 
