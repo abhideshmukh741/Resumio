@@ -356,12 +356,95 @@ export default function ResumeEditor() {
   };
 
   const handlePrint = () => {
-    // Scroll to top so the resume preview starts from the beginning
-    window.scrollTo(0, 0);
-    // Small delay to let the browser apply print styles properly
-    setTimeout(() => {
+    const previewEl = document.getElementById('resume-preview');
+    if (!previewEl) {
       window.print();
-    }, 300);
+      return;
+    }
+
+    // Create a temporary hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.zIndex = '-9999';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+
+    // Collect all stylesheets & font links from main document
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map(s => s.outerHTML)
+      .join('\n');
+
+    const title = `${(personalInfo.name || 'Resume').replace(/\s+/g, '_')}_Resume`;
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          ${styles}
+          <style>
+            @page {
+              size: A4;
+              margin: 0;
+            }
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              display: flex;
+              justify-content: center;
+              align-items: flex-start;
+            }
+            #print-container {
+              width: 210mm !important;
+              min-height: 297mm !important;
+              box-sizing: border-box !important;
+              box-shadow: none !important;
+              border: none !important;
+              margin: 0 !important;
+              background: #ffffff !important;
+              transform: none !important;
+            }
+            #print-container #resume-preview {
+              position: static !important;
+              width: 100% !important;
+              min-height: 297mm !important;
+              box-shadow: none !important;
+              border: none !important;
+              transform: none !important;
+              margin: 0 !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div id="print-container">
+            ${previewEl.outerHTML}
+          </div>
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.focus();
+                window.print();
+              }, 300);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      try { document.body.removeChild(iframe); } catch(e) {}
+    }, 60000);
   };
 
   const zoomIn = () => setZoom(prev => Math.min(prev + 0.1, 1.4));
