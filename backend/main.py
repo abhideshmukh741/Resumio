@@ -237,6 +237,75 @@ async def organize_skills(req: dict, current_user: models.User = Depends(get_cur
     )
     return json.loads(response.choices[0].message.content)
 
+@app.post("/ai/parse-resume")
+async def parse_resume(req: dict, current_user: models.User = Depends(get_current_user)):
+    raw_content = req.get("content") or ""
+    prompt = f"""
+    You are an expert ATS Resume Parser.
+    Extract the candidate's resume information from the following raw text / HTML content into structured JSON:
+    {raw_content[:9000]}
+    
+    Return a JSON object with this EXACT structure:
+    {{
+        "personalInfo": {{
+            "name": "...",
+            "phone": "...",
+            "email": "...",
+            "linkedin": "...",
+            "github": "..."
+        }},
+        "summary": "...",
+        "education": [
+            {{
+                "degree": "...",
+                "college": "...",
+                "university": "...",
+                "cgpa": "...",
+                "graduationYear": "..."
+            }}
+        ],
+        "technicalSkills": [
+            {{
+                "id": "cat-1",
+                "category": "Programming Languages",
+                "skills": "..."
+            }}
+        ],
+        "projects": [
+            {{
+                "title": "...",
+                "technologies": "...",
+                "bullets": ["..."]
+            }}
+        ],
+        "experience": [
+            {{
+                "company": "...",
+                "role": "...",
+                "duration": "...",
+                "bullets": ["..."]
+            }}
+        ],
+        "certifications": ["..."],
+        "strengths": ["..."],
+        "languages": "...",
+        "customSections": [
+            {{
+                "id": "custom-1",
+                "title": "Academic Achievements",
+                "content": "..."
+            }}
+        ]
+    }}
+    Output only valid JSON.
+    """
+    response = await client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"}
+    )
+    return json.loads(response.choices[0].message.content)
+
 @app.post("/ai/optimize-project")
 async def optimize_project(req: dict, current_user: models.User = Depends(get_current_user)):
     project = req.get("project")

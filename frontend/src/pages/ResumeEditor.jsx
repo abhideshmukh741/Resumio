@@ -152,6 +152,8 @@ export default function ResumeEditor() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [organizingSkills, setOrganizingSkills] = useState(false);
+  const [parsingHtml, setParsingHtml] = useState(false);
+  const [parseSuccess, setParseSuccess] = useState(false);
 
   useEffect(() => {
     if (window.innerWidth < 640) {
@@ -580,62 +582,239 @@ export default function ResumeEditor() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (evt) => {
-        setCustomHtmlTemplate(evt.target.result);
+        const content = evt.target.result;
+        setCustomHtmlTemplate(content);
         setTemplate('custom');
       };
       reader.readAsText(file);
     }
   };
 
+  const handleParseUploadedHtml = async () => {
+    if (!customHtmlTemplate) return;
+    try {
+      setParsingHtml(true);
+      const res = await api.post('/ai/parse-resume', { content: customHtmlTemplate });
+      const data = res.data;
+      if (data) {
+        if (data.personalInfo) setPersonalInfo(data.personalInfo);
+        if (data.summary) setSummary(data.summary);
+        if (data.education?.length) setEducation(data.education);
+        if (data.technicalSkills?.length) setTechnicalSkills(data.technicalSkills);
+        if (data.projects?.length) setProjects(data.projects);
+        if (data.experience?.length) setExperience(data.experience);
+        if (data.certifications?.length) setCertifications(data.certifications);
+        if (data.strengths) setStrengths(data.strengths);
+        if (data.languages) setLanguages(data.languages);
+        if (data.customSections?.length) setCustomSections(data.customSections);
+        setParseSuccess(true);
+        setTimeout(() => setParseSuccess(false), 4000);
+      }
+    } catch (err) {
+      console.error('Error parsing HTML resume with AI:', err);
+    } finally {
+      setParsingHtml(false);
+    }
+  };
+
+  const downloadSampleTemplate = () => {
+    const sampleHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{name}} - Resume</title>
+  <style>
+    body {
+      font-family: 'Times New Roman', Times, serif;
+      color: #111827;
+      line-height: 1.45;
+      padding: 24px;
+      font-size: 13px;
+    }
+    .header { text-align: center; margin-bottom: 12px; }
+    .name { font-size: 24px; font-weight: bold; margin-bottom: 4px; }
+    .contact-info { font-size: 12px; color: #374151; }
+    .section-title {
+      font-size: 14px;
+      font-weight: bold;
+      text-transform: uppercase;
+      border-bottom: 1px solid #4b5563;
+      padding-bottom: 2px;
+      margin: 14px 0 6px 0;
+      color: #111827;
+    }
+    .edu-item, .proj-item, .exp-item { margin-bottom: 8px; }
+    .item-header { font-weight: bold; }
+    .item-sub { font-style: italic; color: #374151; }
+    ul { margin: 4px 0 0 16px; padding: 0; }
+    li { margin-bottom: 2px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="name">{{name}}</div>
+    <div class="contact-info">{{phone}} &bull; {{email}} &bull; {{linkedin}} &bull; {{github}}</div>
+  </div>
+
+  <div class="section-title">Professional Summary</div>
+  <p>{{summary}}</p>
+
+  <div class="section-title">Education</div>
+  {{education}}
+
+  <div class="section-title">Technical Skills</div>
+  {{skills}}
+
+  <div class="section-title">Projects</div>
+  {{projects}}
+
+  <div class="section-title">Academic Achievements</div>
+  {{academicAchievements}}
+
+  <div class="section-title">Strengths</div>
+  <p>{{strengths}}</p>
+
+  <div class="section-title">Languages</div>
+  <p>{{languages}}</p>
+</body>
+</html>`;
+
+    const blob = new Blob([sampleHtml], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'custom_resume_template.html';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const populateCustomTemplate = (html) => {
+    if (!html) return '';
     let populated = html;
-    
+
     // Replace Personal Info
-    populated = populated.replace(/{{name}}/g, personalInfo.name || '');
-    populated = populated.replace(/{{email}}/g, personalInfo.email || '');
-    populated = populated.replace(/{{phone}}/g, personalInfo.phone || '');
-    populated = populated.replace(/{{linkedin}}/g, personalInfo.linkedin || '');
-    populated = populated.replace(/{{github}}/g, personalInfo.github || '');
-    
+    populated = populated.replace(/{{name}}/gi, personalInfo.name || '');
+    populated = populated.replace(/{{email}}/gi, personalInfo.email || '');
+    populated = populated.replace(/{{phone}}/gi, personalInfo.phone || '');
+    populated = populated.replace(/{{linkedin}}/gi, personalInfo.linkedin || '');
+    populated = populated.replace(/{{github}}/gi, personalInfo.github || '');
+
     // Replace Summary
-    populated = populated.replace(/{{summary}}/g, enabledSections.summary ? summary : '');
+    populated = populated.replace(/{{summary}}/gi, enabledSections.summary ? (summary || '') : '');
+
+    // Replace Skills
+    const skillsList = Array.isArray(technicalSkills) ? technicalSkills : normalizeSkillsList(technicalSkills);
     
-    // Replace Technical Skills
-    populated = populated.replace(/{{skills.languages}}/g, enabledSections.technicalSkills ? (technicalSkills.languages || '') : '');
-    populated = populated.replace(/{{skills.webTech}}/g, enabledSections.technicalSkills ? (technicalSkills.webTech || '') : '');
-    populated = populated.replace(/{{skills.database}}/g, enabledSections.technicalSkills ? (technicalSkills.database || '') : '');
-    populated = populated.replace(/{{skills.tools}}/g, enabledSections.technicalSkills ? (technicalSkills.tools || '') : '');
-    
+    // 1. Full skills block
+    let skillsHtml = '';
+    if (enabledSections.technicalSkills && skillsList.length > 0) {
+      skillsHtml = '<div class="custom-skills-list" style="display: flex; flex-direction: column; gap: 4px;">';
+      skillsList.forEach(sk => {
+        skillsHtml += `<div class="skill-category-row" style="margin-bottom: 2px;">
+          <strong class="skill-cat-title" style="font-weight: 700;">${sk.category}:</strong> <span class="skill-cat-items">${sk.skills}</span>
+        </div>`;
+      });
+      skillsHtml += '</div>';
+    }
+    populated = populated.replace(/{{skills}}/gi, skillsHtml);
+    populated = populated.replace(/{{technicalSkills}}/gi, skillsHtml);
+
+    // 2. Individual skill categories
+    skillsList.forEach(sk => {
+      const catKey = (sk.category || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const val = sk.skills || '';
+      populated = populated.replace(new RegExp(`{{skills\\.${sk.category}}}`, 'gi'), val);
+      if (catKey.includes('prog') || catKey.includes('lang')) {
+        populated = populated.replace(/{{skills\.languages}}/gi, val);
+      }
+      if (catKey.includes('web')) {
+        populated = populated.replace(/{{skills\.webTech}}/gi, val);
+      }
+      if (catKey.includes('data') && !catKey.includes('struct')) {
+        populated = populated.replace(/{{skills\.database}}/gi, val);
+      }
+      if (catKey.includes('tool')) {
+        populated = populated.replace(/{{skills\.tools}}/gi, val);
+      }
+      if (catKey.includes('problem') || catKey.includes('dsa')) {
+        populated = populated.replace(/{{skills\.problemSolving}}/gi, val);
+      }
+    });
+
     // Create Education HTML
     let eduHtml = '';
-    if (enabledSections.education && education) {
+    if (enabledSections.education && education && education.length > 0) {
       education.forEach(edu => {
-        eduHtml += `<div class="edu-item">
-          <div class="edu-degree">${edu.degree || ''}</div>
-          <div class="edu-college">${edu.college || ''}</div>
-          <div class="edu-meta">${edu.cgpa ? 'CGPA: ' + edu.cgpa : ''} | ${edu.graduationYear || ''}</div>
+        eduHtml += `<div class="edu-item" style="margin-bottom: 8px;">
+          <div class="edu-degree" style="font-weight: 700;">${edu.degree || ''}</div>
+          <div class="edu-college" style="font-style: italic;">${edu.college || ''}</div>
+          ${edu.university ? `<div class="edu-uni" style="font-style: italic;">${edu.university}</div>` : ''}
+          <div class="edu-meta" style="font-size: 12px; font-weight: 600; margin-top: 2px;">
+            ${edu.cgpa ? 'CGPA: ' + edu.cgpa : ''} ${edu.cgpa && edu.graduationYear ? '—' : ''} ${edu.graduationYear || ''}
+          </div>
         </div>`;
       });
     }
-    populated = populated.replace(/{{education}}/g, eduHtml);
-    
+    populated = populated.replace(/{{education}}/gi, eduHtml);
+
     // Create Projects HTML
     let projHtml = '';
-    if (enabledSections.projects && projects) {
+    if (enabledSections.projects && projects && projects.length > 0) {
       projects.forEach(proj => {
         let bulletsHtml = '';
-        if (proj.bullets) {
-          bulletsHtml = '<ul>' + proj.bullets.map(b => b.trim() ? `<li>${b}</li>` : '').join('') + '</ul>';
+        if (proj.bullets && proj.bullets.length > 0) {
+          bulletsHtml = '<ul style="margin: 4px 0 0 16px; padding: 0; list-style-type: disc;">' + 
+            proj.bullets.map(b => b.trim() ? `<li style="margin-bottom: 2px;">${b}</li>` : '').join('') + 
+            '</ul>';
         }
-        projHtml += `<div class="proj-item">
-          <div class="proj-title">${proj.title || ''}</div>
-          <div class="proj-tech">${proj.technologies || ''}</div>
+        projHtml += `<div class="proj-item" style="margin-bottom: 12px;">
+          <div class="proj-title" style="font-weight: 700;">${proj.title || ''}</div>
+          ${proj.technologies ? `<div class="proj-tech" style="font-style: italic; font-size: 12px; color: #4b5563;">Technologies: ${proj.technologies}</div>` : ''}
           <div class="proj-bullets">${bulletsHtml}</div>
         </div>`;
       });
     }
-    populated = populated.replace(/{{projects}}/g, projHtml);
-    
+    populated = populated.replace(/{{projects}}/gi, projHtml);
+
+    // Create Experience HTML
+    let expHtml = '';
+    if (enabledSections.experience && experience && experience.length > 0) {
+      experience.forEach(exp => {
+        let expBulletsHtml = '';
+        if (exp.bullets && exp.bullets.length > 0) {
+          expBulletsHtml = '<ul style="margin: 4px 0 0 16px; padding: 0; list-style-type: disc;">' +
+            exp.bullets.map(b => b.trim() ? `<li style="margin-bottom: 2px;">${b}</li>` : '').join('') + 
+            '</ul>';
+        }
+        expHtml += `<div class="exp-item" style="margin-bottom: 12px;">
+          <div class="exp-role" style="font-weight: 700; display: flex; justify-content: space-between;">
+            <span>${exp.role || ''} ${exp.company ? '— ' + exp.company : ''}</span>
+            <span style="font-weight: normal; font-size: 12px;">${exp.duration || ''}</span>
+          </div>
+          <div class="exp-bullets">${expBulletsHtml}</div>
+        </div>`;
+      });
+    }
+    populated = populated.replace(/{{experience}}/gi, expHtml);
+
+    // Custom Sections
+    let customHtml = '';
+    if (customSections && customSections.length > 0) {
+      customSections.forEach(sec => {
+        customHtml += `<div class="custom-section" style="margin-bottom: 12px;">
+          <h3 class="custom-title" style="font-weight: 700; border-bottom: 1px solid #9ca3af; margin-bottom: 4px;">${sec.title || ''}</h3>
+          <div class="custom-content" style="white-space: pre-wrap;">${sec.content || ''}</div>
+        </div>`;
+      });
+    }
+    populated = populated.replace(/{{customSections}}/gi, customHtml);
+    populated = populated.replace(/{{academicAchievements}}/gi, customSections?.[0]?.content || '');
+
+    // Certifications, Strengths, Languages
+    populated = populated.replace(/{{certifications}}/gi, (certifications || []).join(', '));
+    populated = populated.replace(/{{strengths}}/gi, Array.isArray(strengths) ? strengths.join(' — ') : (strengths || ''));
+    populated = populated.replace(/{{languages}}/gi, languages || '');
+
     return populated;
   };
 
@@ -1426,28 +1605,76 @@ export default function ResumeEditor() {
                 id="resume-preview"
                 className="bg-white shadow-2xl min-h-[1123px] w-[794px] min-w-[794px] p-8 sm:p-10 text-gray-900 border border-gray-300 text-sm leading-normal relative"
               >
-                {/* TEMPLATE UPLOAD UI */}
+                {/* TEMPLATE CUSTOM: HEADER / TOOLBAR */}
+                {template === 'custom' && (
+                  <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-xl flex flex-wrap items-center justify-between gap-2 text-xs no-print">
+                    <div className="flex items-center gap-2 text-purple-900 font-bold">
+                      <FileUp className="w-4 h-4 text-purple-600" />
+                      <span>{customHtmlTemplate ? 'Custom HTML Template Active' : 'Custom HTML Template Mode'}</span>
+                    </div>
+                    <div className="flex items-center flex-wrap gap-2">
+                      <label className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg cursor-pointer transition flex items-center gap-1 shadow-xs">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{customHtmlTemplate ? 'Change HTML File' : 'Select HTML File'}</span>
+                        <input type="file" accept=".html,.htm,.txt" className="hidden" onChange={handleFileUpload} />
+                      </label>
+                      {customHtmlTemplate && (
+                        <button
+                          type="button"
+                          onClick={handleParseUploadedHtml}
+                          disabled={parsingHtml}
+                          className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg transition flex items-center gap-1 shadow-xs disabled:opacity-50"
+                          title="Extract contact info, education, skills, and projects from the uploaded HTML into the editor form"
+                        >
+                          {parsingHtml ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                          <span>{parseSuccess ? '✅ Imported into Form!' : parsingHtml ? 'Parsing HTML...' : '✨ AI Parse into Form'}</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={downloadSampleTemplate}
+                        className="px-3 py-1.5 bg-white hover:bg-gray-100 text-purple-700 border border-purple-300 font-bold rounded-lg transition flex items-center gap-1"
+                        title="Download sample HTML template with placeholders"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Sample Template</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* TEMPLATE UPLOAD UI (if no template loaded yet) */}
                 {template === 'custom' && !customHtmlTemplate && (
-                  <div className="flex flex-col items-center justify-center h-[900px] border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50 text-gray-500 space-y-6">
-                    <FileUp className="w-24 h-24 text-gray-400" />
+                  <div className="flex flex-col items-center justify-center h-[700px] border-4 border-dashed border-gray-300 rounded-3xl bg-gray-50 text-gray-500 space-y-6">
+                    <FileUp className="w-20 h-20 text-purple-400" />
                     <div className="text-center">
-                      <h3 className="text-2xl font-bold text-gray-700 mb-2">Upload Custom HTML Template</h3>
-                      <p className="text-sm max-w-md mx-auto">
-                        Create your own HTML file using placeholders like <code className="bg-gray-200 px-1 rounded text-gray-800">{'{{name}}'}</code>, <code className="bg-gray-200 px-1 rounded text-gray-800">{'{{email}}'}</code>, <code className="bg-gray-200 px-1 rounded text-gray-800">{'{{summary}}'}</code> and upload it here.
+                      <h3 className="text-2xl font-bold text-gray-700 mb-2">Upload Custom HTML Template or Resume</h3>
+                      <p className="text-sm max-w-md mx-auto text-gray-600">
+                        Upload any HTML template with placeholders like <code className="bg-gray-200 px-1 rounded text-gray-800 font-mono">{'{{name}}'}</code>, <code className="bg-gray-200 px-1 rounded text-gray-800 font-mono">{'{{skills}}'}</code>, <code className="bg-gray-200 px-1 rounded text-gray-800 font-mono">{'{{projects}}'}</code>, or a full HTML resume.
                       </p>
                     </div>
-                    <label className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl cursor-pointer shadow-lg transition flex items-center gap-2">
-                      <Upload className="w-5 h-5" />
-                      Select HTML File
-                      <input type="file" accept=".html" className="hidden" onChange={handleFileUpload} />
-                    </label>
+                    <div className="flex items-center gap-3">
+                      <label className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-xl cursor-pointer shadow-lg transition flex items-center gap-2">
+                        <Upload className="w-5 h-5" />
+                        Select HTML File (.html, .htm)
+                        <input type="file" accept=".html,.htm,.txt" className="hidden" onChange={handleFileUpload} />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={downloadSampleTemplate}
+                        className="bg-white border border-purple-300 hover:bg-purple-50 text-purple-700 font-bold py-3 px-5 rounded-xl transition flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download Sample Template
+                      </button>
+                    </div>
                   </div>
                 )}
 
                 {/* TEMPLATE CUSTOM RENDER */}
                 {template === 'custom' && customHtmlTemplate && (
                   <div
-                    className="custom-template-container"
+                    className="custom-template-container w-full"
                     dangerouslySetInnerHTML={{ __html: populateCustomTemplate(customHtmlTemplate) }}
                   />
                 )}
