@@ -35,43 +35,49 @@ function ChatMessage({ msg }) {
 
 const DEFAULT_FRESHER_RESUME = {
   personalInfo: {
-    name: 'Venkatesh Chaudhari',
-    phone: '+91 9284831036',
-    email: 'chaudharivenkatesh1735@gmail.com',
+    name: 'Abhinav Deshmukh',
+    phone: '+91 7448085615',
+    email: 'abhideshmukh741@gmail.com',
     linkedin: 'LinkedIn',
     github: 'GitHub'
   },
-  summary: 'Enthusiastic Computer Science & Engineering fresher with a strong foundation in Java, Python, C, web development, and database systems. Quick learner seeking an entry-level software development role to apply technical and problem-solving skills to real-world applications.',
+  summary: "Final-year CSE student who got into tech by building things — started with AI/ML through YouTube and a friend's course, completed formal ML coursework, and kept going from there. Currently building AI/ML projects while working through DSA problem-solving. Comfortable across the stack, from building models to shipping a live web app, and looking for a place where I can keep building things that actually matter.",
   education: [
     {
       degree: 'Bachelor of Technology (B.Tech.) – Computer Science & Engineering',
       college: 'Maharashtra Institute of Technology, Chhatrapati Sambhajinagar',
       university: 'Dr. Babasaheb Ambedkar Technological University (BATU)',
-      cgpa: '8.26 / 10',
+      cgpa: '8.14 / 10',
       graduationYear: 'Expected Graduation: 2027'
     }
   ],
   technicalSkills: [
     { id: 'languages', category: 'Programming Languages', skills: 'C, Java, Python' },
-    { id: 'webTech', category: 'Web Technologies', skills: 'HTML5, CSS, JavaScript' },
+    { id: 'webTech', category: 'Web Technologies', skills: 'HTML5, CSS, JavaScript, Node.js, Streamlit, Fast API' },
     { id: 'database', category: 'Database', skills: 'MySQL' },
     { id: 'problemSolving', category: 'Problem Solving', skills: 'Data Structures and Algorithms (DSA)' },
-    { id: 'tools', category: 'Tools & Platforms', skills: 'Microsoft Office Suite, GitHub, VS Code' }
+    { id: 'tools', category: 'Tools & Platforms', skills: 'Microsoft Office Suite, GitHub, VS Code, Antigravity' }
   ],
   projects: [
     {
-      title: 'Hydro Cal Pro – Major Project',
-      technologies: 'Python, GIS, Machine Learning, SQL',
+      title: 'DuoAttend',
+      technologies: 'Streamlit ,Supabase, dlib /face_recognition , Resemblyzer, Python',
       bullets: [
-        'Developing an application to estimate rooftop rainwater harvesting and artificial recharge potential.',
-        'Integrates GIS-based rooftop analysis with historical rainfall data for on-site assessment.'
+        'Face & voice based AI attendance',
+        'Teacher & student login/registration',
+        'Subject management with QR code sharing',
+        'Attendance tracking & summaries'
       ]
     },
     {
-      title: 'Blood Bank Management System',
-      technologies: 'HTML5, CSS, PHP, MySQL',
+      title: 'StyleForge',
+      technologies: 'Python, Flask, PyTorch, VGG16, Pillow, NumPy',
       bullets: [
-        'Developed a database-driven application for managing donor and blood inventory records.'
+        'Upload a content image and a style image',
+        'AI merges them using a pretrained VGG16 CNN to create stylized artwork',
+        'Style intensity slider to control how much style is applied (0–100%)',
+        'Real-time processing with PyTorch',
+        'Download the generated image in high resolution'
       ]
     }
   ],
@@ -79,28 +85,18 @@ const DEFAULT_FRESHER_RESUME = {
     'Angela Yu – Full-Stack Web Development Bootcamp (Udemy)',
     'Abdul Bari – Mastering Data Structures & Algorithms (Udemy)'
   ],
-  strengths: ['Team Collaboration', 'Communication', 'Analytical Thinking', 'Time Management'],
+  strengths: ['Team Collaboration', 'Analytical Thinking', 'Time Management', 'Problem-solving', 'Willingness to learn'],
   languages: 'English, Hindi, Marathi',
   hobbies: ['Car Enthusiast', 'Cooking', 'Walking'],
-  experience: [
-    {
-      company: 'Tech Solutions Ltd',
-      role: 'Software Developer Intern',
-      duration: 'Jun 2025 – Aug 2025',
-      bullets: [
-        'Built full-stack web applications using React and Node.js.',
-        'Optimized database queries and API response times by 30%.'
-      ]
-    }
-  ],
+  experience: [],
   enabledSections: {
     summary: true,
     education: true,
     technicalSkills: true,
     projects: true,
-    certifications: true,
+    certifications: false,
     strengths: true,
-    hobbies: true,
+    hobbies: false,
     experience: false
   },
   customSections: [
