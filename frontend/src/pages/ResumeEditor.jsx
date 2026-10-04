@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../lib/api';
 import { 
   Bot, PencilLine, Send, Loader2, Sparkles, CheckCircle, 
-  Printer, Grid, Plus, Trash2, Layers, Eye, X, Check,
+  Printer, Download, Grid, Plus, Trash2, Layers, Eye, X, Check,
   ZoomIn, ZoomOut, RotateCcw, Upload, FileUp
 } from 'lucide-react';
+import html2pdf from 'html2pdf.js';
 
 // ─── AI Chat Message Component ───────────────────────────────────────────────
 function ChatMessage({ msg }) {
@@ -153,6 +154,7 @@ export default function ResumeEditor() {
 
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   useEffect(() => {
     if (window.innerWidth < 640) {
@@ -355,6 +357,41 @@ export default function ResumeEditor() {
     setAiLoading(false);
   };
 
+  const handleDownloadPdf = async () => {
+    const previewEl = document.getElementById('resume-preview');
+    if (!previewEl) return;
+
+    try {
+      setIsExportingPdf(true);
+      const filename = `${(personalInfo.name || 'Resume').trim().replace(/\s+/g, '_')}_Resume.pdf`;
+
+      const opt = {
+        margin: [0, 0, 0, 0],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          letterRendering: true,
+          logging: false
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'portrait'
+        }
+      };
+
+      await html2pdf().set(opt).from(previewEl).save();
+    } catch (err) {
+      console.error('Error exporting PDF:', err);
+      // Fallback to print
+      handlePrint();
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   const handlePrint = () => {
     const previewEl = document.getElementById('resume-preview');
     if (!previewEl) {
@@ -362,13 +399,20 @@ export default function ResumeEditor() {
       return;
     }
 
+    // Clean up any existing print iframe
+    const oldIframe = document.getElementById('resume-print-frame');
+    if (oldIframe && oldIframe.parentNode) {
+      try { oldIframe.parentNode.removeChild(oldIframe); } catch(e) {}
+    }
+
     // Create a temporary hidden iframe for printing
     const iframe = document.createElement('iframe');
+    iframe.id = 'resume-print-frame';
     iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
+    iframe.style.top = '-10000px';
+    iframe.style.left = '-10000px';
+    iframe.style.width = '210mm';
+    iframe.style.height = '297mm';
     iframe.style.border = '0';
     iframe.style.zIndex = '-9999';
     document.body.appendChild(iframe);
@@ -380,71 +424,86 @@ export default function ResumeEditor() {
       .map(s => s.outerHTML)
       .join('\n');
 
-    const title = `${(personalInfo.name || 'Resume').replace(/\s+/g, '_')}_Resume`;
+    const title = `${(personalInfo.name || 'Resume').trim().replace(/\s+/g, '_')}_Resume`;
 
     doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${title}</title>
-          ${styles}
-          <style>
-            @page {
-              size: A4;
-              margin: 0;
-            }
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-              background: #ffffff !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-              display: flex;
-              justify-content: center;
-              align-items: flex-start;
-            }
-            #print-container {
-              width: 210mm !important;
-              min-height: 297mm !important;
-              box-sizing: border-box !important;
-              box-shadow: none !important;
-              border: none !important;
-              margin: 0 !important;
-              background: #ffffff !important;
-              transform: none !important;
-            }
-            #print-container #resume-preview {
-              position: static !important;
-              width: 100% !important;
-              min-height: 297mm !important;
-              box-shadow: none !important;
-              border: none !important;
-              transform: none !important;
-              margin: 0 !important;
-            }
-          </style>
-        </head>
-        <body>
-          <div id="print-container">
-            ${previewEl.outerHTML}
-          </div>
-          <script>
-            window.onload = function() {
-              setTimeout(function() {
-                window.focus();
-                window.print();
-              }, 300);
-            };
-          </script>
-        </body>
-      </html>
-    `);
+    doc.write(`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+    ${styles}
+    <style>
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        color-adjust: exact !important;
+        box-sizing: border-box !important;
+      }
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+        visibility: visible !important;
+      }
+      #print-wrapper {
+        width: 210mm !important;
+        max-width: 210mm !important;
+        min-height: 297mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        background: #ffffff !important;
+        box-sizing: border-box !important;
+        display: block !important;
+        visibility: visible !important;
+      }
+      #resume-preview {
+        box-shadow: none !important;
+        border: none !important;
+        margin: 0 auto !important;
+        transform: none !important;
+        width: 210mm !important;
+        min-width: 210mm !important;
+        max-width: 210mm !important;
+        min-height: 297mm !important;
+        display: block !important;
+        visibility: visible !important;
+        background: #ffffff !important;
+      }
+      #resume-preview * {
+        visibility: visible !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="print-wrapper">
+      ${previewEl.outerHTML}
+    </div>
+  </body>
+</html>`);
     doc.close();
 
     setTimeout(() => {
-      try { document.body.removeChild(iframe); } catch(e) {}
-    }, 60000);
+      try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+      } catch (err) {
+        console.error('Print iframe error:', err);
+        window.print();
+      }
+      setTimeout(() => {
+        try {
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        } catch(e) {}
+      }, 60000);
+    }, 500);
   };
 
   const zoomIn = () => setZoom(prev => Math.min(prev + 0.1, 1.4));
@@ -1246,13 +1305,30 @@ export default function ResumeEditor() {
               </button>
             </div>
 
-            <button
-              onClick={handlePrint}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-sm"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              Print / PDF
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleDownloadPdf}
+                disabled={isExportingPdf}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold rounded-lg transition shadow-sm"
+                title="Directly download PDF file"
+              >
+                {isExportingPdf ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span>{isExportingPdf ? 'Exporting...' : 'Download PDF'}</span>
+              </button>
+
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-sm"
+                title="Open browser print dialog"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                Print / PDF
+              </button>
+            </div>
           </div>
 
           {/* RESUME A4 SCALABLE ZOOM CONTAINER */}
