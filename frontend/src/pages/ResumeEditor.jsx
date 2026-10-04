@@ -155,6 +155,7 @@ export default function ResumeEditor() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [organizingSkills, setOrganizingSkills] = useState(false);
 
   useEffect(() => {
     if (window.innerWidth < 640) {
@@ -291,6 +292,74 @@ export default function ResumeEditor() {
   const handleUpdateSkillCategory = (idx, field, value) => {
     const currentList = Array.isArray(technicalSkills) ? technicalSkills : normalizeSkillsList(technicalSkills);
     setTechnicalSkills(currentList.map((item, i) => i === idx ? { ...item, [field]: value } : item));
+  };
+
+  const handleOrganizeSkills = async () => {
+    setOrganizingSkills(true);
+    const currentList = Array.isArray(technicalSkills) ? technicalSkills : normalizeSkillsList(technicalSkills);
+
+    try {
+      const res = await api.post('/ai/organize-skills', { technical_skills: currentList });
+      if (res.data?.organized_skills && Array.isArray(res.data.organized_skills) && res.data.organized_skills.length > 0) {
+        setTechnicalSkills(res.data.organized_skills);
+        setOrganizingSkills(false);
+        return;
+      }
+    } catch (err) {
+      console.warn('AI organize skills endpoint error, using smart fallback', err);
+    }
+
+    // Smart client-side fallback
+    const allSkills = [];
+    currentList.forEach(c => {
+      if (c.skills) {
+        c.skills.split(',').forEach(s => {
+          const trimmed = s.trim();
+          if (trimmed && !allSkills.some(x => x.toLowerCase() === trimmed.toLowerCase())) {
+            allSkills.push(trimmed);
+          }
+        });
+      }
+    });
+
+    const groups = {
+      'Programming Languages': [],
+      'Web Technologies & Frameworks': [],
+      'Machine Learning & AI': [],
+      'Databases': [],
+      'Cloud & DevOps': [],
+      'Tools & Platforms': []
+    };
+
+    allSkills.forEach(skill => {
+      const s = skill.toLowerCase();
+      if (/^(c|c\+\+|java|python|javascript|typescript|golang|go|rust|ruby|php|kotlin|swift|r|scala)$/i.test(s)) {
+        groups['Programming Languages'].push(skill);
+      } else if (/html|css|react|node|express|flask|django|fastapi|streamlit|angular|vue|next\.js|tailwind|rest|api|graphql|redux/i.test(s)) {
+        groups['Web Technologies & Frameworks'].push(skill);
+      } else if (/machine learning|deep learning|ml|nlp|computer vision|tensorflow|pytorch|scikit|pandas|numpy|llm|generative ai|data preprocessing|feature engineering|model evaluation|statistics|mlflow|bert|keras|opencv/i.test(s)) {
+        groups['Machine Learning & AI'].push(skill);
+      } else if (/sql|mysql|postgres|postgresql|mongodb|redis|supabase|firebase|sqlite|oracle|cassandra|dynamodb/i.test(s)) {
+        groups['Databases'].push(skill);
+      } else if (/docker|kubernetes|aws|gcp|azure|ci\/cd|devops|cloud|terraform|jenkins|linux|deployment/i.test(s)) {
+        groups['Cloud & DevOps'].push(skill);
+      } else {
+        groups['Tools & Platforms'].push(skill);
+      }
+    });
+
+    const formatted = Object.entries(groups)
+      .filter(([_, items]) => items.length > 0)
+      .map(([cat, items], idx) => ({
+        id: `cat-${idx + 1}`,
+        category: cat,
+        skills: items.join(', ')
+      }));
+
+    if (formatted.length > 0) {
+      setTechnicalSkills(formatted);
+    }
+    setOrganizingSkills(false);
   };
 
   const handleAddCustomSection = () => {
@@ -959,7 +1028,23 @@ export default function ResumeEditor() {
               {enabledSections.technicalSkills && (
                 <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-xs uppercase tracking-wider text-gray-600">Technical Skills</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-xs uppercase tracking-wider text-gray-600">Technical Skills</h3>
+                      <button
+                        type="button"
+                        onClick={handleOrganizeSkills}
+                        disabled={organizingSkills}
+                        className="flex items-center gap-1 text-[11px] font-bold text-purple-600 bg-purple-50 hover:bg-purple-100 border border-purple-200 px-2 py-0.5 rounded-md transition shadow-xs"
+                        title="AI will categorize, clean up duplicates, and format all skills into standard ATS categories"
+                      >
+                        {organizingSkills ? (
+                          <Loader2 className="w-3 h-3 animate-spin text-purple-600" />
+                        ) : (
+                          <Sparkles className="w-3 h-3 text-purple-600" />
+                        )}
+                        <span>{organizingSkills ? 'Organizing...' : '✨ AI Clean & Organize'}</span>
+                      </button>
+                    </div>
                     <button onClick={() => toggleSection('technicalSkills')} className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-medium">
                       <Trash2 className="w-3.5 h-3.5" /> Delete Section
                     </button>

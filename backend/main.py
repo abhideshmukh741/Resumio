@@ -135,25 +135,57 @@ def update_resume(update: schemas.ResumeDataUpdate, current_user: models.User = 
 async def optimize_job(req: dict, current_user: models.User = Depends(get_current_user)):
     target_role = req.get("target_role")
     job_description = req.get("job_description")
-    resume_data = req.get("resume_data")
+    resume_data = req.get("resume_data") or {}
 
     prompt = f"""
-    You are an expert ATS resume optimizer.
+    You are a world-class ATS Resume Strategist and Senior Technical Recruiter.
     Target Role: {target_role}
     Job Description: {job_description}
-    Current Resume JSON: {json.dumps(resume_data)}
-    
-    Identify keywords, technical skills, and tools present in the job description.
-    Compare with the current resume.
-    Return a JSON object with:
+    Current Candidate Resume: {json.dumps(resume_data)}
+
+    Your mission is to tailor and optimize the candidate's entire resume to achieve high ATS compliance and impress hiring managers for "{target_role}".
+    Do NOT fabricate fake employment history or false degrees. Enhance and align their actual projects, summary, and skills to the job requirements.
+
+    ATS Optimization Requirements:
+    1. SUMMARY: Write a focused, high-impact 2-3 sentence Professional Summary tailored for "{target_role}", emphasizing candidate's relevant background, core stack, and target value.
+    2. TECHNICAL SKILLS: Categorize candidate skills into 4 to 6 clean, standard categories ("Programming Languages", "Web Technologies & Frameworks", "Machine Learning & AI", "Databases", "Cloud & DevOps", "Tools & Platforms"). Incorporate matching technologies from the JD into their legitimate categories. NEVER put all skills into "Tools".
+    3. PROJECTS: Rewrite project bullet points using Google XYZ format ("Accomplished [X] as measured by [Y] by doing [Z]") and action verbs. Naturally integrate target keywords (e.g. data preprocessing, model evaluation, REST APIs, deployment) directly into project bullets where relevant.
+    4. EXPERIENCE: If experience entries exist, rewrite bullets with active verbs and keyword integration.
+    5. ATS METRICS: Provide realistic match percentage, matched keywords, missing keywords, and optimization notes.
+
+    Return a JSON object with this exact structure:
     {{
-        "already_present": ["skill1", "skill2"],
-        "missing_but_relevant": ["skill3", "skill4"],
-        "suggested_changes": [
-            {{"original": "Worked on...", "suggested": "Developed..."}}
+        "match_score": 85,
+        "match_verdict": "Strong Match for {target_role}",
+        "summary_before": "{resume_data.get('summary', '')}",
+        "summary_after": "Tailored 2-3 sentence summary...",
+        "tailored_summary": "Tailored 2-3 sentence summary...",
+        "tailored_technical_skills": [
+            {{"id": "lang", "category": "Programming Languages", "skills": "C, Java, Python"}},
+            {{"id": "web", "category": "Web Technologies & Frameworks", "skills": "HTML5, CSS, JavaScript, Node.js, Flask, FastAPI, Streamlit"}},
+            {{"id": "ml", "category": "Machine Learning & AI", "skills": "NumPy, Pandas, Scikit-learn, TensorFlow, Data Preprocessing, Feature Engineering, Model Optimization, NLP"}},
+            {{"id": "db", "category": "Databases", "skills": "MySQL, Supabase, SQL"}},
+            {{"id": "cloud", "category": "Cloud & DevOps", "skills": "Docker, Kubernetes, AWS/GCP, CI/CD pipelines, Cloud Deployment"}},
+            {{"id": "tools", "category": "Tools & Platforms", "skills": "Git, GitHub, VS Code, Postman"}}
+        ],
+        "tailored_projects": [
+            {{
+                "title": "Project Title",
+                "technologies": "Technologies Used",
+                "original_bullets": ["Original bullet 1", "Original bullet 2"],
+                "improved_bullets": ["Enhanced bullet 1 with action verb and naturally integrated keywords", "Enhanced bullet 2..."]
+            }}
+        ],
+        "tailored_experience": [],
+        "already_present": ["Python", "Streamlit", "MySQL"],
+        "missing_but_relevant": ["Git", "Data preprocessing", "Feature engineering", "Model evaluation and optimization", "MLflow", "Flask"],
+        "key_optimizations": [
+            "Tailored professional summary specifically for {target_role}",
+            "Organized technical skills into 6 distinct, balanced ATS categories",
+            "Naturally integrated key technologies into project bullet points with measurable impact"
         ]
     }}
-    IMPORTANT: Do not invent experience. Only suggest improvements based on provided experience. Output only valid JSON.
+    IMPORTANT: Output strictly valid JSON.
     """
 
     response = await client.chat.completions.create(
@@ -162,6 +194,47 @@ async def optimize_job(req: dict, current_user: models.User = Depends(get_curren
         response_format={"type": "json_object"}
     )
     
+    return json.loads(response.choices[0].message.content)
+
+@app.post("/ai/organize-skills")
+async def organize_skills(req: dict, current_user: models.User = Depends(get_current_user)):
+    technical_skills = req.get("technical_skills")
+    prompt = f"""
+    You are an expert ATS resume coach.
+    Here is the current technical skills data from a candidate's resume:
+    {json.dumps(technical_skills)}
+    
+    Re-organize, categorize, and clean up these skills into 4 to 6 clean, professional, ATS-standard categories:
+    - "Programming Languages"
+    - "Web Technologies & Frameworks"
+    - "Machine Learning & AI" (if applicable)
+    - "Databases"
+    - "Cloud & DevOps" (if applicable)
+    - "Tools & Platforms"
+    
+    Rules:
+    - Never dump everything into "Tools & Platforms". Distribute each technology to its proper category (e.g. Flask/Node -> Web Technologies; PyTorch/Scikit-learn/ML -> Machine Learning & AI; Docker/Kubernetes/AWS -> Cloud & DevOps; Git/VS Code -> Tools & Platforms).
+    - Deduplicate skills and fix spacing.
+    - Keep each category clean, balanced, and readable.
+    
+    Return a JSON object:
+    {{
+        "organized_skills": [
+            {{"id": "lang", "category": "Programming Languages", "skills": "..."}},
+            {{"id": "web", "category": "Web Technologies & Frameworks", "skills": "..."}},
+            {{"id": "ml", "category": "Machine Learning & AI", "skills": "..."}},
+            {{"id": "db", "category": "Databases", "skills": "..."}},
+            {{"id": "cloud", "category": "Cloud & DevOps", "skills": "..."}},
+            {{"id": "tools", "category": "Tools & Platforms", "skills": "..."}}
+        ]
+    }}
+    Output only valid JSON.
+    """
+    response = await client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"}
+    )
     return json.loads(response.choices[0].message.content)
 
 @app.post("/ai/optimize-project")
