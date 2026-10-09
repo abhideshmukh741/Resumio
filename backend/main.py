@@ -811,6 +811,23 @@ def update_application_status(
         raise HTTPException(status_code=404, detail="Application not found")
     return updated
 
+@app.post("/api/applications/{id}/submit", response_model=schemas.ApplicationOut)
+def submit_application(
+    id: int,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    app = ApplicationService.get_by_id(db, id, current_user.id)
+    if not app:
+        raise HTTPException(status_code=404, detail="Application not found")
+    
+    # Mark as applied and log audit event
+    updated = ApplicationService.update_status(
+        db, id, current_user.id, "applied", 
+        notes=f"Auto-dispatched via Agno Application Assistant. Target Portal: {app.job.company if app.job else 'Company'}"
+    )
+    return updated
+
 @app.delete("/api/applications/{id}")
 def delete_application(
     id: int,
@@ -821,3 +838,4 @@ def delete_application(
     if not deleted:
         raise HTTPException(status_code=404, detail="Application not found")
     return {"message": "Deleted"}
+

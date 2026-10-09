@@ -14,9 +14,11 @@ import {
   Mail, 
   Edit3, 
   Building, 
-  MapPin,
+  MapPin, 
   Calendar,
-  Layers
+  Layers,
+  Zap,
+  Check
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -36,6 +38,7 @@ export default function ApplicationsTracker() {
   const [applications, setApplications] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [submittingId, setSubmittingId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   // Edit Note Modal
@@ -83,6 +86,32 @@ export default function ApplicationsTracker() {
     } catch (err) {
       console.error('Error updating status:', err);
       showToast('Failed to update status.');
+    }
+  };
+
+  const handleAutoApply = async (app) => {
+    setSubmittingId(app.id);
+    try {
+      const token = localStorage.getItem('token');
+      // 1. Trigger backend submit endpoint
+      await axios.post(
+        `${API_BASE_URL}/api/applications/${app.id}/submit`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // 2. Open external job portal if available
+      if (app.job?.url) {
+        window.open(app.job.url, '_blank');
+      }
+
+      showToast(`Application marked as Applied for ${app.job?.company}!`);
+      fetchApplications();
+    } catch (err) {
+      console.error('Auto apply error:', err);
+      showToast('Error dispatching application.');
+    } finally {
+      setSubmittingId(null);
     }
   };
 
@@ -277,17 +306,16 @@ export default function ApplicationsTracker() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {app.job?.url && (
-                    <a
-                      href={app.job.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1 shadow-sm"
-                    >
-                      <span>Submit Application</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
+                  <button
+                    onClick={() => handleAutoApply(app)}
+                    disabled={submittingId === app.id}
+                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm"
+                    title="1-Click apply: marks applied, prepares materials, and opens application portal"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>{submittingId === app.id ? 'Applying...' : app.status === 'applied' ? 'Re-Apply Portal' : '1-Click Apply'}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
 
                   <button
                     onClick={() => openStatusModal(app)}
