@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { 
   Search, 
   MapPin, 
@@ -19,8 +19,6 @@ import {
   Target
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 export default function JobsDiscovery() {
   const navigate = useNavigate();
@@ -52,25 +50,35 @@ export default function JobsDiscovery() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const fetchJobs = async () => {
+  const fetchJobs = async (customSearch = null) => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
+      const activeSearch = customSearch !== null ? customSearch : search;
       const params = {
         limit: 50,
         work_arrangement: workArrangement !== 'all' ? workArrangement : undefined
       };
-      if (search) params.search = search;
+      if (activeSearch) params.search = activeSearch;
       if (location) params.location = location;
 
-      const res = await axios.get(`${API_BASE_URL}/api/jobs`, {
-        params,
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setJobs(res.data || []);
+      const res = await api.get('/api/jobs', { params });
+      let jobList = res.data || [];
+
+      // If search returned 0 results, automatically try live external discovery on the fly
+      if (jobList.length === 0 && activeSearch) {
+        const discRes = await api.post('/api/jobs/discover', {
+          query: activeSearch,
+          location: location || 'remote',
+          limit: 15
+        });
+        if (discRes.data && discRes.data.length > 0) {
+          jobList = discRes.data;
+        }
+      }
+
+      setJobs(jobList);
     } catch (err) {
       console.error('Error fetching jobs:', err);
-      showToast('Error loading job listings');
     } finally {
       setLoading(false);
     }
@@ -84,18 +92,17 @@ export default function JobsDiscovery() {
   const handleDiscoverLive = async () => {
     setDiscovering(true);
     try {
-      const token = localStorage.getItem('token');
-      const query = search || 'Python';
-      const res = await axios.post(
-        `${API_BASE_URL}/api/jobs/discover`,
-        { query, location: location || 'remote', limit: 8 },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      showToast(`Discovered ${res.data?.length || 0} opportunities!`);
+      const query = search || 'developer';
+      const res = await api.post('/api/jobs/discover', {
+        query,
+        location: location || 'remote',
+        limit: 20
+      });
+      showToast(`Discovered ${res.data?.length || 0} live opportunities!`);
       fetchJobs();
     } catch (err) {
       console.error('Discovery error:', err);
-      showToast('Discovery fetch completed.');
+      showToast('Live discovery completed.');
       fetchJobs();
     } finally {
       setDiscovering(false);
@@ -109,12 +116,7 @@ export default function JobsDiscovery() {
     setAnalysisResult(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${API_BASE_URL}/api/jobs/${job.id}/analyze`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post(`/api/jobs/${job.id}/analyze`, {});
       setAnalysisResult(res.data);
     } catch (err) {
       console.error('Error analyzing job match:', err);
@@ -127,12 +129,7 @@ export default function JobsDiscovery() {
   const handleTailorResume = async (job) => {
     setTailoringJobId(job.id);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${API_BASE_URL}/api/jobs/${job.id}/tailor-resume`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post(`/api/jobs/${job.id}/tailor-resume`, {});
       showToast(`Tailored resume saved: "${res.data.version_name}"`);
       navigate('/versions');
     } catch (err) {
@@ -146,12 +143,7 @@ export default function JobsDiscovery() {
   const handleGenerateCoverLetter = async (job) => {
     setGeneratingLetterId(job.id);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${API_BASE_URL}/api/jobs/${job.id}/cover-letter`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post(`/api/jobs/${job.id}/cover-letter`, {});
       showToast(`Cover Letter generated for ${job.company}!`);
       navigate('/cover-letters');
     } catch (err) {
@@ -165,12 +157,11 @@ export default function JobsDiscovery() {
   const handleTrackApplication = async (job) => {
     setTrackingJobId(job.id);
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${API_BASE_URL}/api/applications`,
-        { job_id: job.id, status: 'ready_to_apply', submission_type: 'assisted' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/api/applications', {
+        job_id: job.id,
+        status: 'ready_to_apply',
+        submission_type: 'assisted'
+      });
       showToast(`Added ${job.title} to Applications Tracker!`);
     } catch (err) {
       console.error('Error tracking application:', err);
@@ -219,7 +210,7 @@ export default function JobsDiscovery() {
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
             <input
               type="text"
-              placeholder="Job title, role, skill (e.g. Python, React)..."
+              placeholder="Search e.g. ML Intern, Python, Full Stack..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
@@ -256,7 +247,7 @@ export default function JobsDiscovery() {
               className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl py-2.5 transition flex items-center justify-center gap-2 shadow-sm"
             >
               <Filter className="w-4 h-4" />
-              <span>Filter</span>
+              <span>Search</span>
             </button>
             <button
               type="button"
@@ -283,12 +274,12 @@ export default function JobsDiscovery() {
           <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 max-w-xl mx-auto">
             <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
             <h3 className="text-lg font-bold text-slate-800">No Jobs Found</h3>
-            <p className="text-slate-500 text-sm mt-1">Try adjusting your keyword filter or click "Live Fetch" to scan online listings.</p>
+            <p className="text-slate-500 text-sm mt-1">Click below to trigger live autonomous discovery across active tech job feeds.</p>
             <button
               onClick={handleDiscoverLive}
               className="mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl"
             >
-              Discover Live Listings
+              Discover Live Listings Now
             </button>
           </div>
         ) : (

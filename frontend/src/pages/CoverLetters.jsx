@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { 
   Mail, 
   Copy, 
@@ -16,8 +16,6 @@ import {
   Printer
 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-
 export default function CoverLetters() {
   const [letters, setLetters] = useState([]);
   const [activeLetter, setActiveLetter] = useState(null);
@@ -29,11 +27,6 @@ export default function CoverLetters() {
   // Edit state
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
-
-  // Create Modal
-  const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [newRole, setNewRole] = useState('');
-  const [newCompany, setNewCompany] = useState('');
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -47,10 +40,7 @@ export default function CoverLetters() {
   const fetchLetters = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/cover-letters`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/cover-letters');
       setLetters(res.data || []);
       if (res.data?.length > 0) {
         selectLetter(res.data[0]);
@@ -74,15 +64,12 @@ export default function CoverLetters() {
     if (!activeLetter) return;
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.put(
-        `${API_BASE_URL}/api/cover-letters/${activeLetter.id}`,
-        { title: editTitle, content: editContent },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.put(`/api/cover-letters/${activeLetter.id}`, {
+        title: editTitle,
+        content: editContent
+      });
       showToast('Cover letter saved successfully!');
       setActiveLetter(res.data);
-      // Update in list
       setLetters(letters.map(l => l.id === res.data.id ? res.data : l));
     } catch (err) {
       console.error('Error saving cover letter:', err);
@@ -95,10 +82,7 @@ export default function CoverLetters() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this cover letter?')) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_BASE_URL}/api/cover-letters/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/api/cover-letters/${id}`);
       showToast('Cover letter deleted.');
       const updated = letters.filter(l => l.id !== id);
       setLetters(updated);

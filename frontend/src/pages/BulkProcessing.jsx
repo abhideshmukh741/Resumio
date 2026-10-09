@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../lib/api';
 import { 
   Sparkles, 
   Layers, 
@@ -18,8 +18,6 @@ import {
   Cpu
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 export default function BulkProcessing() {
   const navigate = useNavigate();
@@ -52,7 +50,6 @@ export default function BulkProcessing() {
     let interval;
     if (activeRunId) {
       fetchRunDetail(activeRunId);
-      // Poll active run every 3 seconds
       interval = setInterval(() => {
         fetchRunDetail(activeRunId);
       }, 3000);
@@ -63,10 +60,7 @@ export default function BulkProcessing() {
   const fetchRuns = async () => {
     setLoadingRuns(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/bulk/runs`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/bulk/runs');
       setRuns(res.data || []);
       if (res.data?.length > 0 && !activeRunId) {
         setActiveRunId(res.data[0].id);
@@ -80,10 +74,7 @@ export default function BulkProcessing() {
 
   const fetchRunDetail = async (runId) => {
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_BASE_URL}/api/bulk/runs/${runId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get(`/api/bulk/runs/${runId}`);
       setActiveRunDetail(res.data);
     } catch (err) {
       console.error('Error fetching run detail:', err);
@@ -94,7 +85,6 @@ export default function BulkProcessing() {
     e.preventDefault();
     setLaunching(true);
     try {
-      const token = localStorage.getItem('token');
       const payload = {
         run_name: runName,
         target_roles: targetRoles.split(',').map(r => r.trim()).filter(Boolean),
@@ -104,16 +94,14 @@ export default function BulkProcessing() {
         auto_generate_cover_letters: autoCoverLetters
       };
 
-      const res = await axios.post(`${API_BASE_URL}/api/bulk/start`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
+      const res = await api.post('/api/bulk/start', payload);
       showToast(`Bulk AI Run "${res.data.run_name}" launched!`);
       setActiveRunId(res.data.id);
       fetchRuns();
     } catch (err) {
       console.error('Error starting bulk run:', err);
-      showToast('Failed to start bulk run.');
+      const detailMsg = err.response?.data?.detail || 'Failed to start bulk run. Please ensure you are signed in.';
+      showToast(detailMsg);
     } finally {
       setLaunching(false);
     }
@@ -121,10 +109,7 @@ export default function BulkProcessing() {
 
   const handlePause = async (runId) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/bulk/runs/${runId}/pause`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/api/bulk/runs/${runId}/pause`, {});
       showToast('Run paused.');
       fetchRunDetail(runId);
       fetchRuns();
@@ -135,10 +120,7 @@ export default function BulkProcessing() {
 
   const handleResume = async (runId) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/bulk/runs/${runId}/resume`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/api/bulk/runs/${runId}/resume`, {});
       showToast('Run resumed.');
       fetchRunDetail(runId);
       fetchRuns();
@@ -149,10 +131,7 @@ export default function BulkProcessing() {
 
   const handleCancel = async (runId) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_BASE_URL}/api/bulk/runs/${runId}/cancel`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.post(`/api/bulk/runs/${runId}/cancel`, {});
       showToast('Run cancelled.');
       fetchRunDetail(runId);
       fetchRuns();

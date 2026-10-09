@@ -4,6 +4,7 @@ import re
 import httpx
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 import models
 import schemas
 
@@ -18,6 +19,18 @@ def clean_html(raw_html: str) -> str:
     return " ".join(cleantext.split())
 
 CURATED_TECH_JOBS = [
+    {
+        "title": "Machine Learning Intern (AI & Computer Vision)",
+        "company": "DeepVision AI Labs",
+        "location": "Remote / San Francisco, CA",
+        "work_arrangement": "remote",
+        "job_type": "internship",
+        "salary_range": "$40 - $60 / hr",
+        "description": "Join our ML research team to train PyTorch neural networks, build data preprocessing pipelines, and implement object detection and NLP models.",
+        "requirements": "Pursuing or completed B.S./M.S. in CS or Data Science; Python, PyTorch/TensorFlow, Scikit-learn, OpenCV; Passion for ML/AI algorithms.",
+        "url": "https://remotive.com",
+        "source": "curated"
+    },
     {
         "title": "Full Stack Engineer (Python & React)",
         "company": "Nexus AI Labs",
@@ -40,6 +53,18 @@ CURATED_TECH_JOBS = [
         "description": "Join our AI Platform team to build agentic workflows, fine-tune models, and deploy high-performance inference pipelines on cloud infrastructure.",
         "requirements": "Proficiency in Python, PyTorch/TensorFlow, Scikit-learn, LangChain/Agno; Experience with vector databases (Pinecone/Milvus), FastAPI, and Docker.",
         "url": "https://remotive.com",
+        "source": "curated"
+    },
+    {
+        "title": "Software Engineering Intern (Summer / Fall)",
+        "company": "Apex NextGen Systems",
+        "location": "Remote",
+        "work_arrangement": "remote",
+        "job_type": "internship",
+        "salary_range": "$35 - $50 / hr",
+        "description": "Exciting internship opportunity for early-career developers. Work directly with senior engineers on full stack web features, backend APIs, and automated test suites.",
+        "requirements": "Foundational knowledge of Python, JavaScript, HTML/CSS, and Git; Eager to learn modern frameworks like FastAPI and React.",
+        "url": "https://www.arbeitnow.com",
         "source": "curated"
     },
     {
@@ -80,21 +105,31 @@ CURATED_TECH_JOBS = [
     }
 ]
 
+ACRONYM_MAP = {
+    "ml": "machine learning",
+    "ai": "artificial intelligence",
+    "fe": "frontend",
+    "be": "backend",
+    "fs": "full stack",
+    "intern": "internship",
+    "dev": "developer",
+    "eng": "engineer",
+    "sw": "software"
+}
+
 class JobService:
     @staticmethod
     def seed_initial_jobs(db: Session):
-        """Seeds initial curated tech jobs if table has fewer than 5 jobs"""
-        count = db.query(models.JobListing).count()
-        if count < 5:
-            for job_dict in CURATED_TECH_JOBS:
-                exists = db.query(models.JobListing).filter(
-                    models.JobListing.title == job_dict["title"],
-                    models.JobListing.company == job_dict["company"]
-                ).first()
-                if not exists:
-                    job = models.JobListing(**job_dict)
-                    db.add(job)
-            db.commit()
+        """Seeds initial curated tech jobs into the database"""
+        for job_dict in CURATED_TECH_JOBS:
+            exists = db.query(models.JobListing).filter(
+                models.JobListing.title == job_dict["title"],
+                models.JobListing.company == job_dict["company"]
+            ).first()
+            if not exists:
+                job = models.JobListing(**job_dict)
+                db.add(job)
+        db.commit()
 
     @staticmethod
     def get_jobs(
@@ -106,19 +141,34 @@ class JobService:
         offset: int = 0
     ) -> List[models.JobListing]:
         query = db.query(models.JobListing).filter(models.JobListing.is_active == True)
-        if search:
-            search_fmt = f"%{search.strip()}%"
-            query = query.filter(
-                (models.JobListing.title.ilike(search_fmt)) |
-                (models.JobListing.company.ilike(search_fmt)) |
-                (models.JobListing.description.ilike(search_fmt)) |
-                (models.JobListing.requirements.ilike(search_fmt))
-            )
-        if location:
+        
+        if search and search.strip():
+            raw_tokens = search.strip().lower().split()
+            expanded_tokens = []
+            for t in raw_tokens:
+                expanded_tokens.append(t)
+                if t in ACRONYM_MAP:
+                    expanded_tokens.append(ACRONYM_MAP[t])
+            
+            # Match any expanded keyword
+            conditions = []
+            for token in expanded_tokens:
+                pattern = f"%{token}%"
+                conditions.append(models.JobListing.title.ilike(pattern))
+                conditions.append(models.JobListing.company.ilike(pattern))
+                conditions.append(models.JobListing.description.ilike(pattern))
+                conditions.append(models.JobListing.requirements.ilike(pattern))
+            
+            query = query.filter(or_(*conditions))
+
+        if location and location.strip():
             query = query.filter(models.JobListing.location.ilike(f"%{location.strip()}%"))
+        
         if work_arrangement and work_arrangement != "all":
             query = query.filter(models.JobListing.work_arrangement == work_arrangement)
-        return query.order_by(models.JobListing.id.desc()).offset(offset).limit(limit).all()
+        
+        results = query.order_by(models.JobListing.id.desc()).offset(offset).limit(limit).all()
+        return results
 
     @staticmethod
     def get_job_by_id(db: Session, job_id: int) -> Optional[models.JobListing]:
@@ -143,88 +193,94 @@ class JobService:
         Discovers live jobs via open public APIs (Arbeitnow & Remotive) and saves new unique listings.
         """
         discovered = []
-        q = (query or "developer").strip().lower()
+        raw_q = (query or "developer").strip().lower()
+        search_terms = raw_q.split()
+        if raw_q in ACRONYM_MAP:
+            search_terms.append(ACRONYM_MAP[raw_q])
 
         # 1. Fetch from Arbeitnow Public Job API (300+ live tech jobs)
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=8.0) as client:
                 r = await client.get("https://www.arbeitnow.com/api/job-board-api")
                 if r.status_code == 200:
                     data = r.json().get("data", [])
-                    matching = []
                     for item in data:
                         title = item.get("title", "")
                         desc = clean_html(item.get("description", ""))
                         tags = ", ".join(item.get("tags", []))
-                        if q in title.lower() or q in desc.lower() or q in tags.lower() or q in ["all", "job", "developer", "engineer"]:
-                            matching.append(item)
-
-                    for item in matching[:limit]:
-                        title = item.get("title", "Software Engineer")
-                        company = item.get("company_name", "Tech Company")
-                        exists = db.query(models.JobListing).filter(
-                            models.JobListing.title == title,
-                            models.JobListing.company == company
-                        ).first()
-                        if not exists:
-                            tags_list = item.get("tags", [])
-                            job = models.JobListing(
-                                title=title,
-                                company=company,
-                                location=item.get("location", "Remote"),
-                                work_arrangement="remote" if item.get("remote") else "on-site",
-                                job_type=item.get("job_types", ["full-time"])[0] if item.get("job_types") else "full-time",
-                                salary_range=None,
-                                description=clean_html(item.get("description", ""))[:2000],
-                                requirements=", ".join(tags_list) if tags_list else "Software Engineering competencies",
-                                url=item.get("url", ""),
-                                source="arbeitnow"
-                            )
-                            db.add(job)
-                            db.commit()
-                            db.refresh(job)
-                            discovered.append(job)
-                        else:
-                            discovered.append(exists)
+                        combined = f"{title} {desc} {tags}".lower()
+                        
+                        # Check match
+                        if any(term in combined for term in search_terms) or raw_q in ["all", "job", "developer", "engineer"]:
+                            company = item.get("company_name", "Tech Company")
+                            exists = db.query(models.JobListing).filter(
+                                models.JobListing.title == title,
+                                models.JobListing.company == company
+                            ).first()
+                            if not exists:
+                                tags_list = item.get("tags", [])
+                                job = models.JobListing(
+                                    title=title,
+                                    company=company,
+                                    location=item.get("location", "Remote"),
+                                    work_arrangement="remote" if item.get("remote") else "on-site",
+                                    job_type=item.get("job_types", ["full-time"])[0] if item.get("job_types") else "full-time",
+                                    salary_range=None,
+                                    description=clean_html(item.get("description", ""))[:2000],
+                                    requirements=", ".join(tags_list) if tags_list else "Software Engineering competencies",
+                                    url=item.get("url", ""),
+                                    source="arbeitnow"
+                                )
+                                db.add(job)
+                                db.commit()
+                                db.refresh(job)
+                                discovered.append(job)
+                            else:
+                                discovered.append(exists)
+                            if len(discovered) >= limit:
+                                break
         except Exception as e:
             logger.warning(f"Arbeitnow job discovery error: {e}")
 
         # 2. Fetch from Remotive API (Remote tech jobs)
-        try:
-            remotive_url = f"https://remotive.com/api/remote-jobs?search={q}&limit={limit}"
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                r = await client.get(remotive_url)
-                if r.status_code == 200:
-                    jobs_list = r.json().get("jobs", [])
-                    for item in jobs_list[:limit]:
-                        title = item.get("title", "Developer")
-                        company = item.get("company_name", "Remote Company")
-                        exists = db.query(models.JobListing).filter(
-                            models.JobListing.title == title,
-                            models.JobListing.company == company
-                        ).first()
-                        if not exists:
-                            tags_list = item.get("tags", [])
-                            job = models.JobListing(
-                                title=title,
-                                company=company,
-                                location=item.get("candidate_required_location", "Remote"),
-                                work_arrangement="remote",
-                                job_type=item.get("job_type", "full-time"),
-                                salary_range=item.get("salary") or "Competitive",
-                                description=clean_html(item.get("description", ""))[:2000],
-                                requirements=", ".join(tags_list) if tags_list else "Software Engineering competencies",
-                                url=item.get("url", ""),
-                                source="remotive"
-                            )
-                            db.add(job)
-                            db.commit()
-                            db.refresh(job)
-                            discovered.append(job)
-                        else:
-                            discovered.append(exists)
-        except Exception as e:
-            logger.warning(f"Remotive job discovery error: {e}")
+        if len(discovered) < limit:
+            try:
+                remotive_url = f"https://remotive.com/api/remote-jobs?search={raw_q}&limit={limit}"
+                async with httpx.AsyncClient(timeout=8.0) as client:
+                    r = await client.get(remotive_url)
+                    if r.status_code == 200:
+                        jobs_list = r.json().get("jobs", [])
+                        for item in jobs_list:
+                            title = item.get("title", "Developer")
+                            company = item.get("company_name", "Remote Company")
+                            exists = db.query(models.JobListing).filter(
+                                models.JobListing.title == title,
+                                models.JobListing.company == company
+                            ).first()
+                            if not exists:
+                                tags_list = item.get("tags", [])
+                                job = models.JobListing(
+                                    title=title,
+                                    company=company,
+                                    location=item.get("candidate_required_location", "Remote"),
+                                    work_arrangement="remote",
+                                    job_type=item.get("job_type", "full-time"),
+                                    salary_range=item.get("salary") or "Competitive",
+                                    description=clean_html(item.get("description", ""))[:2000],
+                                    requirements=", ".join(tags_list) if tags_list else "Software Engineering competencies",
+                                    url=item.get("url", ""),
+                                    source="remotive"
+                                )
+                                db.add(job)
+                                db.commit()
+                                db.refresh(job)
+                                discovered.append(job)
+                            else:
+                                discovered.append(exists)
+                            if len(discovered) >= limit:
+                                break
+            except Exception as e:
+                logger.warning(f"Remotive job discovery error: {e}")
 
         # Fallback to database query if APIs returned fewer items
         if not discovered:
