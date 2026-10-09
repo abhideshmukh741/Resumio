@@ -465,7 +465,22 @@ async def tailor_resume_for_job(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
     master_resume = ResumeService.get_master_resume(db, current_user.id)
-    
+
+    # Fetch existing ATS analysis so missing keywords are passed to the tailoring agent
+    existing_analysis = db.query(models.JobAnalysis).filter(
+        models.JobAnalysis.user_id == current_user.id,
+        models.JobAnalysis.job_id == job_id
+    ).first()
+
+    analysis_context = None
+    if existing_analysis:
+        analysis_context = {
+            "match_score": existing_analysis.match_score,
+            "matched_skills": json.loads(existing_analysis.matched_skills or "[]"),
+            "missing_skills": json.loads(existing_analysis.missing_skills or "[]"),
+            "recommendations": json.loads(existing_analysis.recommendations or "[]")
+        }
+
     agent = ResumeTailoringAgent()
     job_dict = {
         "title": job.title,
@@ -473,8 +488,9 @@ async def tailor_resume_for_job(
         "description": job.description,
         "requirements": job.requirements
     }
-    tailored = await agent.tailor_resume(master_resume, job_dict)
-    
+    # Pass analysis so agent explicitly weaves in missing ATS keywords
+    tailored = await agent.tailor_resume(master_resume, job_dict, analysis=analysis_context)
+
     # Save as role snapshot version
     version = ResumeService.save_tailored_version(
         db=db,
@@ -487,7 +503,9 @@ async def tailor_resume_for_job(
     return {
         "version_id": version.id,
         "version_name": version.version_name,
-        "tailored_resume": tailored
+        "tailored_resume": tailored,
+        "applied_keywords": analysis_context.get("missing_skills", []) if analysis_context else [],
+        "job_url": job.url or ""
     }
 
 @app.post("/api/jobs/{job_id}/cover-letter")

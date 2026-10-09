@@ -36,6 +36,7 @@ export default function JobsDiscovery() {
 
   // Action status
   const [tailoringJobId, setTailoringJobId] = useState(null);
+  const [tailoredJobs, setTailoredJobs] = useState({}); // jobId -> { keywords, job_url }
   const [trackingJobId, setTrackingJobId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -128,8 +129,16 @@ export default function JobsDiscovery() {
     setTailoringJobId(job.id);
     try {
       const res = await api.post(`/api/jobs/${job.id}/tailor-resume`, {});
-      showToast(`Tailored resume saved: "${res.data.version_name}"`);
-      navigate('/versions');
+      const keywords = res.data.applied_keywords || [];
+      setTailoredJobs(prev => ({
+        ...prev,
+        [job.id]: {
+          keywords,
+          version_name: res.data.version_name,
+          job_url: res.data.job_url || getApplyUrl(job)
+        }
+      }));
+      showToast(`Resume tailored! ${keywords.length} keywords added. Now click Apply Now ↓`);
     } catch (err) {
       console.error('Error tailoring resume:', err);
       showToast('Failed to tailor resume.');
@@ -328,7 +337,7 @@ export default function JobsDiscovery() {
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 space-y-2">
-                  {/* Apply Button — always visible, uses real URL or LinkedIn fallback */}
+                  {/* Apply Button — always visible */}
                   <a
                     href={getApplyUrl(job)}
                     target="_blank"
@@ -338,6 +347,24 @@ export default function JobsDiscovery() {
                     <ExternalLink className="w-4 h-4" />
                     <span>Apply Now →</span>
                   </a>
+
+                  {/* Tailored success banner */}
+                  {tailoredJobs[job.id] && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                      <div className="text-xs font-bold text-emerald-700 mb-1 flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Resume tailored! Keywords added:
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {tailoredJobs[job.id].keywords.map((kw, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-semibold rounded-full">{kw}</span>
+                        ))}
+                        {tailoredJobs[job.id].keywords.length === 0 && (
+                          <span className="text-xs text-emerald-600">Resume optimized for this role</span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-3 gap-2">
                     <button
@@ -356,14 +383,18 @@ export default function JobsDiscovery() {
                     <button
                       onClick={() => handleTailorResume(job)}
                       disabled={tailoringJobId === job.id}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition shadow-sm"
+                      className={`w-full flex items-center justify-center gap-1.5 py-2 px-2 font-semibold text-xs rounded-xl transition shadow-sm ${
+                        tailoredJobs[job.id]
+                          ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          : 'bg-slate-900 hover:bg-slate-800 text-white'
+                      }`}
                     >
                       {tailoringJobId === job.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <FileText className="w-3.5 h-3.5" />
                       )}
-                      <span>Tailor</span>
+                      <span>{tailoredJobs[job.id] ? 'Re-Tailor' : 'Tailor'}</span>
                     </button>
 
                     <button
