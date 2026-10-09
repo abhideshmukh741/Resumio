@@ -121,12 +121,35 @@ def get_resume(current_user: models.User = Depends(get_current_user), db: Sessio
 
 @app.post("/resume", response_model=schemas.ResumeData)
 def update_resume(update: schemas.ResumeDataUpdate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    data_json = json.dumps(update.data)
     resume = db.query(models.ResumeData).filter(models.ResumeData.user_id == current_user.id).first()
     if not resume:
-        resume = models.ResumeData(user_id=current_user.id, data=json.dumps(update.data))
+        resume = models.ResumeData(user_id=current_user.id, data=data_json)
         db.add(resume)
     else:
-        resume.data = json.dumps(update.data)
+        resume.data = data_json
+
+    # Automatically create a version history snapshot
+    personal_info = update.data.get("personalInfo", {}) if isinstance(update.data, dict) else {}
+    cand_name = personal_info.get("name") or current_user.username
+
+    target_role = ""
+    edu = update.data.get("education", [])
+    if edu and isinstance(edu, list) and len(edu) > 0 and isinstance(edu[0], dict):
+        target_role = edu[0].get("degree", "")
+
+    from datetime import datetime
+    time_str = datetime.now().strftime("%b %d, %I:%M %p")
+    version_title = f"{cand_name} (Saved {time_str})"
+
+    new_version = models.ResumeVersion(
+        user_id=current_user.id,
+        version_name=version_title,
+        target_role=target_role or "Resume Snapshot",
+        resume_data=data_json
+    )
+    db.add(new_version)
+
     db.commit()
     db.refresh(resume)
     return {"id": resume.id, "user_id": resume.user_id, "data": json.loads(resume.data)}
@@ -239,7 +262,7 @@ async def organize_skills(req: dict, current_user: models.User = Depends(get_cur
 
 @app.post("/ai/parse-resume")
 async def parse_resume(req: dict, current_user: models.User = Depends(get_current_user)):
-    raw_content = req.get("content") or ""
+    raw_content = req.get("content") or req.get("text") or ""
     prompt = f"""
     You are an expert ATS Resume Parser.
     Extract the candidate's resume information from the following raw text / HTML content into structured JSON:
@@ -337,34 +360,6 @@ async def quick_edit(req: dict, current_user: models.User = Depends(get_current_
     Resume JSON: {json.dumps(resume_data)}
     
     Return ONLY the updated complete Resume JSON object.
-    """
-    response = await client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"}
-    )
-    return json.loads(response.choices[0].message.content)
-
-@app.post("/ai/parse-resume")
-async def parse_resume(req: dict, current_user: models.User = Depends(get_current_user)):
-    raw_text = req.get("text", "")
-    prompt = f"""
-    Parse the following raw resume text into a structured JSON format.
-    Raw Text: {raw_text}
-    
-    Return ONLY a JSON object with this exact structure:
-    {{
-        "personalInfo": {{
-            "name": "",
-            "email": "",
-            "phone": "",
-            "linkedin": ""
-        }},
-        "summary": "",
-        "skills": "",
-        "experience": ""
-    }}
-    Extract as much information as possible and place it in the correct fields.
     """
     response = await client.chat.completions.create(
         model=MODEL_NAME,

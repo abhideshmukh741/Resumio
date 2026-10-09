@@ -60,7 +60,7 @@ export default function ResumeVersions() {
     const pi = data.personalInfo || {};
     const lines = [
       pi.name ? pi.name.toUpperCase() : 'YOUR NAME',
-      [pi.email, pi.phone, pi.linkedin].filter(Boolean).join(' | '),
+      [pi.email, pi.phone, pi.linkedin, pi.github].filter(Boolean).join(' | '),
       '',
     ];
     if (data.summary) {

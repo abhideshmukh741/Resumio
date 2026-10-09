@@ -38,8 +38,8 @@ const DEFAULT_FRESHER_RESUME = {
     name: 'Abhinav Deshmukh',
     phone: '+91 7448085615',
     email: 'abhideshmukh741@gmail.com',
-    linkedin: 'LinkedIn',
-    github: 'GitHub'
+    linkedin: 'https://www.linkedin.com/in/abhinav-deshmukh',
+    github: 'https://github.com/abhideshmukh741'
   },
   summary: "Final-year CSE student who got into tech by building things — started with AI/ML through YouTube and a friend's course, completed formal ML coursework, and kept going from there. Currently building AI/ML projects while working through DSA problem-solving. Comfortable across the stack, from building models to shipping a live web app, and looking for a place where I can keep building things that actually matter.",
   education: [
@@ -106,6 +106,57 @@ const DEFAULT_FRESHER_RESUME = {
       content: '• Top 5% in National Coding Olympiad 2025\n• Winner of University TechFest Project Expo'
     }
   ]
+};
+
+export const formatLinkUrl = (val, type = 'generic') => {
+  if (!val || typeof val !== 'string') return '';
+  const trimmed = val.trim();
+  if (!trimmed) return '';
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+  if (/^mailto:/i.test(trimmed) || /^tel:/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (type === 'github') {
+    if (trimmed.toLowerCase() === 'github') {
+      return 'https://github.com/abhideshmukh741';
+    }
+    if (/^github\.com\//i.test(trimmed) || /^www\.github\.com\//i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    if (!trimmed.includes('/') && !trimmed.includes('.')) {
+      return `https://github.com/${trimmed}`;
+    }
+    return `https://${trimmed}`;
+  }
+
+  if (type === 'linkedin') {
+    if (trimmed.toLowerCase() === 'linkedin') {
+      return 'https://www.linkedin.com/in/abhinav-deshmukh';
+    }
+    if (/^linkedin\.com\//i.test(trimmed) || /^www\.linkedin\.com\//i.test(trimmed)) {
+      return `https://${trimmed}`;
+    }
+    if (!trimmed.includes('/') && !trimmed.includes('.')) {
+      return `https://www.linkedin.com/in/${trimmed}`;
+    }
+    return `https://${trimmed}`;
+  }
+
+  return `https://${trimmed}`;
+};
+
+export const getDisplayLabel = (val, defaultLabel) => {
+  if (!val || typeof val !== 'string') return defaultLabel;
+  const trimmed = val.trim();
+  if (!trimmed) return defaultLabel;
+  if (trimmed.toLowerCase() === defaultLabel.toLowerCase()) return defaultLabel;
+  if (trimmed.toLowerCase().includes('github.com')) return 'GitHub';
+  if (trimmed.toLowerCase().includes('linkedin.com')) return 'LinkedIn';
+  return trimmed;
 };
 
 const normalizeSkillsList = (skillsData) => {
@@ -432,24 +483,76 @@ export default function ResumeEditor() {
       setIsExportingPdf(true);
       const filename = `${(personalInfo.name || 'Resume').trim().replace(/\s+/g, '_')}_Resume.pdf`;
 
+      // Create a clean clone for PDF generation without shadows/borders that cause 2nd page overflow
+      const clone = previewEl.cloneNode(true);
+
+      // Remove UI toolbars/elements that shouldn't be in PDF
+      const noPrints = clone.querySelectorAll('.no-print');
+      noPrints.forEach(el => el.remove());
+
+      // Strip shadows, outer borders, and margin that cause 2nd page overflow
+      clone.style.boxShadow = 'none';
+      clone.style.border = 'none';
+      clone.style.margin = '0';
+      clone.style.transform = 'none';
+      clone.style.width = '794px';
+      clone.style.minWidth = '794px';
+      clone.style.maxWidth = '794px';
+      clone.style.backgroundColor = '#ffffff';
+
+      // Fix any child template wrappers with min-h-[1123px]
+      const twoCol = clone.querySelector('.min-h-\\[1123px\\], .min-h-\\[1120px\\]');
+      if (twoCol) {
+        twoCol.style.minHeight = '1120px';
+      }
+
+      // Check height: if single page content, fit precisely to 1120px
+      if (clone.scrollHeight <= 1126) {
+        clone.style.height = '1120px';
+        clone.style.minHeight = '1120px';
+        clone.style.maxHeight = '1120px';
+        clone.style.overflow = 'hidden';
+      }
+
+      // Temporarily place clone in off-screen container for rendering
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '-10000px';
+      container.style.left = '-10000px';
+      container.style.width = '794px';
+      container.style.zIndex = '-9999';
+      container.style.background = '#ffffff';
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
       const opt = {
         margin: [0, 0, 0, 0],
         filename: filename,
         image: { type: 'jpeg', quality: 0.98 },
+        enableLinks: true,
         html2canvas: {
           scale: 2,
           useCORS: true,
           letterRendering: true,
-          logging: false
+          logging: false,
+          scrollY: 0,
+          scrollX: 0,
+          windowWidth: 794
         },
         jsPDF: {
           unit: 'mm',
           format: 'a4',
           orientation: 'portrait'
-        }
+        },
+        pagebreak: { mode: ['css', 'legacy'] }
       };
 
-      await html2pdf().set(opt).from(previewEl).save();
+      await html2pdf().set(opt).from(clone).save();
+
+      // Cleanup
+      if (container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
     } catch (err) {
       console.error('Error exporting PDF:', err);
       // Fallback to print
@@ -692,12 +795,40 @@ export default function ResumeEditor() {
     if (!html) return '';
     let populated = html;
 
+    const linkedinUrl = formatLinkUrl(personalInfo.linkedin, 'linkedin');
+    const linkedinLabel = getDisplayLabel(personalInfo.linkedin, 'LinkedIn');
+    const linkedinAnchor = personalInfo.linkedin
+      ? `<a href="${linkedinUrl}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">${linkedinLabel}</a>`
+      : '';
+
+    const githubUrl = formatLinkUrl(personalInfo.github, 'github');
+    const githubLabel = getDisplayLabel(personalInfo.github, 'GitHub');
+    const githubAnchor = personalInfo.github
+      ? `<a href="${githubUrl}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">${githubLabel}</a>`
+      : '';
+
+    const emailAnchor = personalInfo.email
+      ? `<a href="mailto:${personalInfo.email}" style="color: inherit; text-decoration: underline;">${personalInfo.email}</a>`
+      : '';
+
+    const phoneAnchor = personalInfo.phone
+      ? `<a href="tel:${personalInfo.phone.replace(/\s+/g, '')}" style="color: inherit; text-decoration: none;">${personalInfo.phone}</a>`
+      : '';
+
     // Replace Personal Info
     populated = populated.replace(/{{name}}/gi, personalInfo.name || '');
-    populated = populated.replace(/{{email}}/gi, personalInfo.email || '');
-    populated = populated.replace(/{{phone}}/gi, personalInfo.phone || '');
-    populated = populated.replace(/{{linkedin}}/gi, personalInfo.linkedin || '');
-    populated = populated.replace(/{{github}}/gi, personalInfo.github || '');
+    populated = populated.replace(/{{email_url}}/gi, `mailto:${personalInfo.email || ''}`);
+    populated = populated.replace(/{{email_raw}}/gi, personalInfo.email || '');
+    populated = populated.replace(/{{email}}/gi, emailAnchor || personalInfo.email || '');
+    populated = populated.replace(/{{phone_url}}/gi, `tel:${(personalInfo.phone || '').replace(/\s+/g, '')}`);
+    populated = populated.replace(/{{phone_raw}}/gi, personalInfo.phone || '');
+    populated = populated.replace(/{{phone}}/gi, phoneAnchor || personalInfo.phone || '');
+    populated = populated.replace(/{{linkedin_url}}/gi, linkedinUrl || '');
+    populated = populated.replace(/{{linkedin_raw}}/gi, personalInfo.linkedin || '');
+    populated = populated.replace(/{{linkedin}}/gi, linkedinAnchor || personalInfo.linkedin || '');
+    populated = populated.replace(/{{github_url}}/gi, githubUrl || '');
+    populated = populated.replace(/{{github_raw}}/gi, personalInfo.github || '');
+    populated = populated.replace(/{{github}}/gi, githubAnchor || personalInfo.github || '');
 
     // Replace Summary
     populated = populated.replace(/{{summary}}/gi, enabledSections.summary ? (summary || '') : '');
@@ -881,14 +1012,14 @@ export default function ResumeEditor() {
         {/* Save Button */}
         <div className="hidden sm:flex ml-auto items-center gap-3">
           {saveSuccess && (
-            <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
-              <CheckCircle className="w-4 h-4" /> Saved!
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-green-50 border border-green-200 text-xs text-green-700 font-semibold rounded-lg animate-fade-in shadow-xs">
+              <CheckCircle className="w-4 h-4 text-green-600" /> Saved to Database & Versions!
             </span>
           )}
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition shadow-sm cursor-pointer"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {saving ? 'Saving...' : 'Save Resume'}
@@ -978,19 +1109,21 @@ export default function ResumeEditor() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1 font-medium">LinkedIn</label>
+                    <label className="block text-xs text-gray-500 mb-1 font-medium">LinkedIn Profile (URL or username)</label>
                     <input
                       type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g. https://www.linkedin.com/in/abhinav-deshmukh or abhinav-deshmukh"
                       value={personalInfo.linkedin || ''}
                       onChange={e => setPersonalInfo({ ...personalInfo, linkedin: e.target.value })}
                     />
                   </div>
                   <div className="sm:col-span-2">
-                    <label className="block text-xs text-gray-500 mb-1 font-medium">GitHub / Portfolio</label>
+                    <label className="block text-xs text-gray-500 mb-1 font-medium">GitHub / Portfolio (URL or username)</label>
                     <input
                       type="text"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g. https://github.com/abhideshmukh741 or abhideshmukh741"
                       value={personalInfo.github || ''}
                       onChange={e => setPersonalInfo({ ...personalInfo, github: e.target.value })}
                     />
@@ -1597,13 +1730,13 @@ export default function ResumeEditor() {
               style={{
                 transform: `scale(${zoom})`,
                 transformOrigin: 'top center',
-                marginBottom: zoom < 1 ? `-${(1 - zoom) * 1123}px` : '0px'
+                marginBottom: zoom < 1 ? `-${(1 - zoom) * 1120}px` : '0px'
               }}
               className="transition-transform duration-150 ease-out print-no-transform"
             >
               <div
                 id="resume-preview"
-                className="bg-white shadow-2xl min-h-[1123px] w-[794px] min-w-[794px] p-8 sm:p-10 text-gray-900 border border-gray-300 text-sm leading-normal relative"
+                className="bg-white shadow-2xl min-h-[1120px] w-[794px] min-w-[794px] p-8 sm:p-10 text-gray-900 border border-gray-300 text-sm leading-normal relative"
               >
                 {/* TEMPLATE CUSTOM: HEADER / TOOLBAR */}
                 {template === 'custom' && (
@@ -1686,15 +1819,43 @@ export default function ResumeEditor() {
                     <div className="text-center pb-1">
                       <h1 className="text-2xl font-bold tracking-wide text-gray-900 mb-1">{personalInfo.name || 'Your Name'}</h1>
                       <div className="text-gray-800 text-xs flex items-center justify-center flex-wrap gap-2">
-                        {personalInfo.phone && <span>{personalInfo.phone}</span>}
+                        {personalInfo.phone && (
+                          <a href={`tel:${personalInfo.phone.replace(/\s+/g, '')}`} className="text-gray-900 hover:text-blue-700">
+                            {personalInfo.phone}
+                          </a>
+                        )}
                         {personalInfo.phone && personalInfo.email && <span>—</span>}
-                        {personalInfo.email && <a href={`mailto:${personalInfo.email}`} className="text-gray-900 underline">{personalInfo.email}</a>}
+                        {personalInfo.email && (
+                          <a href={`mailto:${personalInfo.email}`} className="text-gray-900 hover:text-blue-700 underline">
+                            {personalInfo.email}
+                          </a>
+                        )}
                       </div>
-                      <div className="text-gray-800 text-xs flex items-center justify-center gap-3 mt-1">
-                        {personalInfo.linkedin && <span className="font-medium text-gray-900">{personalInfo.linkedin}</span>}
-                        {personalInfo.linkedin && personalInfo.github && <span>—</span>}
-                        {personalInfo.github && <span className="font-medium text-gray-900">{personalInfo.github}</span>}
-                      </div>
+                      {(personalInfo.linkedin || personalInfo.github) && (
+                        <div className="text-gray-800 text-xs flex items-center justify-center gap-3 mt-1">
+                          {personalInfo.linkedin && (
+                            <a
+                              href={formatLinkUrl(personalInfo.linkedin, 'linkedin')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-gray-900 hover:text-blue-700 underline cursor-pointer"
+                            >
+                              {getDisplayLabel(personalInfo.linkedin, 'LinkedIn')}
+                            </a>
+                          )}
+                          {personalInfo.linkedin && personalInfo.github && <span>—</span>}
+                          {personalInfo.github && (
+                            <a
+                              href={formatLinkUrl(personalInfo.github, 'github')}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-medium text-gray-900 hover:text-blue-700 underline cursor-pointer"
+                            >
+                              {getDisplayLabel(personalInfo.github, 'GitHub')}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Summary */}
@@ -1819,9 +1980,41 @@ export default function ResumeEditor() {
                   <div className="font-sans space-y-5">
                     <div className="border-b-2 border-blue-600 pb-4">
                       <h1 className="text-3xl font-bold text-gray-900">{personalInfo.name || 'Your Name'}</h1>
-                      <p className="text-xs text-blue-600 font-semibold mt-1 flex gap-3">
-                        {[personalInfo.email, personalInfo.phone, personalInfo.linkedin, personalInfo.github].filter(Boolean).join(' | ')}
-                      </p>
+                      <div className="text-xs text-blue-600 font-semibold mt-1 flex flex-wrap items-center gap-2">
+                        {personalInfo.email && (
+                          <a href={`mailto:${personalInfo.email}`} className="hover:underline">
+                            {personalInfo.email}
+                          </a>
+                        )}
+                        {personalInfo.email && (personalInfo.phone || personalInfo.linkedin || personalInfo.github) && <span>|</span>}
+                        {personalInfo.phone && (
+                          <a href={`tel:${personalInfo.phone.replace(/\s+/g, '')}`} className="hover:underline">
+                            {personalInfo.phone}
+                          </a>
+                        )}
+                        {personalInfo.phone && (personalInfo.linkedin || personalInfo.github) && <span>|</span>}
+                        {personalInfo.linkedin && (
+                          <a
+                            href={formatLinkUrl(personalInfo.linkedin, 'linkedin')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline cursor-pointer"
+                          >
+                            {getDisplayLabel(personalInfo.linkedin, 'LinkedIn')}
+                          </a>
+                        )}
+                        {personalInfo.linkedin && personalInfo.github && <span>|</span>}
+                        {personalInfo.github && (
+                          <a
+                            href={formatLinkUrl(personalInfo.github, 'github')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline cursor-pointer"
+                          >
+                            {getDisplayLabel(personalInfo.github, 'GitHub')}
+                          </a>
+                        )}
+                      </div>
                     </div>
                     {enabledSections.summary && summary && (
                       <div>
@@ -1923,9 +2116,41 @@ export default function ResumeEditor() {
                   <div className="font-sans space-y-5">
                     <div className="bg-slate-900 text-white p-6 -mx-10 -mt-10 rounded-t-sm">
                       <h1 className="text-3xl font-extrabold tracking-wide uppercase">{personalInfo.name}</h1>
-                      <p className="text-slate-300 text-xs mt-2 flex gap-3 flex-wrap">
-                        <span>{personalInfo.email}</span> • <span>{personalInfo.phone}</span> • <span>{personalInfo.linkedin}</span>
-                      </p>
+                      <div className="text-slate-300 text-xs mt-2 flex gap-3 flex-wrap items-center">
+                        {personalInfo.email && (
+                          <a href={`mailto:${personalInfo.email}`} className="text-slate-200 hover:text-white underline">
+                            {personalInfo.email}
+                          </a>
+                        )}
+                        {personalInfo.email && (personalInfo.phone || personalInfo.linkedin || personalInfo.github) && <span>•</span>}
+                        {personalInfo.phone && (
+                          <a href={`tel:${personalInfo.phone.replace(/\s+/g, '')}`} className="text-slate-200 hover:text-white">
+                            {personalInfo.phone}
+                          </a>
+                        )}
+                        {personalInfo.phone && (personalInfo.linkedin || personalInfo.github) && <span>•</span>}
+                        {personalInfo.linkedin && (
+                          <a
+                            href={formatLinkUrl(personalInfo.linkedin, 'linkedin')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-slate-200 hover:text-white underline cursor-pointer"
+                          >
+                            {getDisplayLabel(personalInfo.linkedin, 'LinkedIn')}
+                          </a>
+                        )}
+                        {personalInfo.linkedin && personalInfo.github && <span>•</span>}
+                        {personalInfo.github && (
+                          <a
+                            href={formatLinkUrl(personalInfo.github, 'github')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-slate-200 hover:text-white underline cursor-pointer"
+                          >
+                            {getDisplayLabel(personalInfo.github, 'GitHub')}
+                          </a>
+                        )}
+                      </div>
                     </div>
                     {enabledSections.summary && summary && (
                       <div>
@@ -2024,13 +2249,40 @@ export default function ResumeEditor() {
 
                 {/* TEMPLATE 4: CREATIVE SIDEBAR */}
                 {template === 'twocolumn' && (
-                  <div className="font-sans flex -m-10 min-h-[1123px]">
+                  <div className="font-sans flex -m-10 min-h-[1120px]">
                     <div className="w-1/3 bg-gray-900 text-white p-6 space-y-5">
                       <div>
                         <h1 className="text-xl font-extrabold text-white uppercase">{personalInfo.name}</h1>
-                        <p className="text-xs text-purple-400 mt-1 font-semibold">{personalInfo.email}</p>
-                        <p className="text-xs text-gray-300">{personalInfo.phone}</p>
-                        {personalInfo.github && <p className="text-xs text-gray-300 mt-0.5">{personalInfo.github}</p>}
+                        {personalInfo.email && (
+                          <a href={`mailto:${personalInfo.email}`} className="block text-xs text-purple-400 mt-1 font-semibold hover:underline">
+                            {personalInfo.email}
+                          </a>
+                        )}
+                        {personalInfo.phone && (
+                          <a href={`tel:${personalInfo.phone.replace(/\s+/g, '')}`} className="block text-xs text-gray-300 hover:underline">
+                            {personalInfo.phone}
+                          </a>
+                        )}
+                        {personalInfo.linkedin && (
+                          <a
+                            href={formatLinkUrl(personalInfo.linkedin, 'linkedin')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-xs text-purple-300 hover:underline mt-0.5 cursor-pointer"
+                          >
+                            {getDisplayLabel(personalInfo.linkedin, 'LinkedIn')}
+                          </a>
+                        )}
+                        {personalInfo.github && (
+                          <a
+                            href={formatLinkUrl(personalInfo.github, 'github')}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-xs text-gray-300 hover:underline mt-0.5 cursor-pointer"
+                          >
+                            {getDisplayLabel(personalInfo.github, 'GitHub')}
+                          </a>
+                        )}
                       </div>
                       {enabledSections.technicalSkills && technicalSkills && (
                         <div className="space-y-2 text-xs">
