@@ -15,7 +15,9 @@ import {
   Sliders, 
   RotateCw,
   TrendingUp,
-  Cpu
+  Cpu,
+  ExternalLink,
+  Send
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -138,6 +140,48 @@ export default function BulkProcessing() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleTrackItem = async (item) => {
+    if (!item.job_id) return;
+    try {
+      await api.post('/api/applications', {
+        job_id: item.job_id,
+        resume_version_id: item.resume_version_id,
+        cover_letter_id: item.cover_letter_id,
+        status: 'ready_to_apply',
+        submission_type: 'assisted'
+      });
+      showToast(`Tracked application for ${item.job?.title || 'Job'}`);
+    } catch (err) {
+      console.error('Error tracking application:', err);
+      showToast('Failed to track application');
+    }
+  };
+
+  const handleTrackAllReady = async () => {
+    if (!activeRunDetail?.items) return;
+    const readyItems = activeRunDetail.items.filter(i => i.status === 'ready_for_review' || i.status === 'approved');
+    if (readyItems.length === 0) {
+      showToast('No ready job packages to track yet.');
+      return;
+    }
+    let successCount = 0;
+    for (const item of readyItems) {
+      try {
+        await api.post('/api/applications', {
+          job_id: item.job_id,
+          resume_version_id: item.resume_version_id,
+          cover_letter_id: item.cover_letter_id,
+          status: 'ready_to_apply',
+          submission_type: 'assisted'
+        });
+        successCount++;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    showToast(`Added ${successCount} job applications to Applications Tracker!`);
   };
 
   const progressPercent = activeRunDetail && activeRunDetail.total_jobs > 0
@@ -400,9 +444,29 @@ export default function BulkProcessing() {
 
               {/* Processed Items Table */}
               <div>
-                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
-                  Generated Documents & Job Items ({activeRunDetail.items?.length || 0})
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                  <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Generated Documents & Job Items ({activeRunDetail.items?.length || 0})
+                  </h3>
+                  {activeRunDetail.items?.some(i => i.status === 'ready_for_review' || i.status === 'approved') && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleTrackAllReady}
+                        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Track All in Applications</span>
+                      </button>
+                      <button
+                        onClick={() => navigate('/applications')}
+                        className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1"
+                      >
+                        <span>View Tracker</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {activeRunDetail.items?.length === 0 ? (
                   <div className="py-8 text-center text-xs text-slate-500">No items found for this batch.</div>
@@ -433,11 +497,11 @@ export default function BulkProcessing() {
                           )}
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center flex-wrap gap-2">
                           {item.resume_version_id && (
                             <button
                               onClick={() => navigate('/versions')}
-                              className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 transition flex items-center gap-1"
+                              className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-lg border border-blue-200 transition flex items-center gap-1"
                               title="View and download tailored resume"
                             >
                               <FileText className="w-3.5 h-3.5" />
@@ -447,13 +511,33 @@ export default function BulkProcessing() {
                           {item.cover_letter_id && (
                             <button
                               onClick={() => navigate('/cover-letters')}
-                              className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold rounded-lg border border-purple-200 transition flex items-center gap-1"
+                              className="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold rounded-lg border border-purple-200 transition flex items-center gap-1"
                               title="View and edit tailored cover letter"
                             >
                               <Mail className="w-3.5 h-3.5" />
                               <span>Letter</span>
                             </button>
                           )}
+                          {item.job?.url && (
+                            <a
+                              href={item.job.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg transition flex items-center gap-1 shadow-xs"
+                              title="Open original job listing to apply"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>Apply</span>
+                            </a>
+                          )}
+                          <button
+                            onClick={() => handleTrackItem(item)}
+                            className="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 transition flex items-center gap-1"
+                            title="Add to Applications Tracker"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Track</span>
+                          </button>
                           <span className={`px-2.5 py-1 text-[11px] font-bold rounded-lg capitalize ${
                             item.status === 'ready_for_review' || item.status === 'approved' ? 'bg-emerald-100 text-emerald-800' :
                             item.status === 'pending' ? 'bg-slate-200 text-slate-700' :
