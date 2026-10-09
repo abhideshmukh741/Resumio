@@ -68,14 +68,12 @@ class CoverLetterAgent:
         Output strictly valid JSON.
         """
         try:
-            response = self.agent.run(prompt)
+            response = await asyncio.to_thread(self.agent.run, prompt)
             content = response.content.strip()
-            if content.startswith("```json"):
-                content = content[7:]
-            if content.startswith("```"):
-                content = content[3:]
-            if content.endswith("```"):
-                content = content[:-3]
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0]
+            elif "```" in content:
+                content = content.split("```")[1].split("```")[0]
             parsed = json.loads(content.strip())
             return {
                 "title": parsed.get("title", f"Cover Letter - {job_data.get('title')}"),

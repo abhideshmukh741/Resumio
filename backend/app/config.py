@@ -6,7 +6,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 DEFAULT_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
-FALLBACK_MODEL = "openai/gpt-oss-120b"
+FALLBACK_MODEL = "qwen/qwen3.8-27b"
 TEMPERATURE = float(os.getenv("MODEL_TEMPERATURE", "0.2"))
 
 def get_agent_model(model_id: str = None) -> Groq:

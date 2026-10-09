@@ -37,6 +37,12 @@ from app.services.application_service import ApplicationService
 
 load_dotenv()
 
+MODEL_NAME = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b")
+client = AsyncOpenAI(
+    base_url="https://api.groq.com/openai/v1",
+    api_key=GROQ_API_KEY
+)
+
 # Create all database tables
 models.Base.metadata.create_all(bind=engine)
 

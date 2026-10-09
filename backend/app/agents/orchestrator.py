@@ -55,16 +55,17 @@ class AgnoOrchestrator:
                 result["error"] = f"Match score {match_score}% below threshold ({min_match_score}%)"
                 return result
 
-            # Stage 2: Resume Tailoring
-            logger.info("Orchestrator: Tailoring resume")
-            tailored_resume = await self.tailoring_agent.tailor_resume(master_resume, job_data, analysis)
-            result["tailored_resume"] = tailored_resume
-
-            # Stage 3: Cover Letter Generation
+            # Stage 2 & 3: Parallel Resume Tailoring and Cover Letter Generation
+            logger.info("Orchestrator: Concurrently tailoring resume and drafting cover letter")
             if generate_cover_letter:
-                logger.info("Orchestrator: Generating customized cover letter")
-                cover_letter = await self.cover_letter_agent.generate_cover_letter(job_data, tailored_resume)
+                tailor_task = self.tailoring_agent.tailor_resume(master_resume, job_data, analysis)
+                cover_task = self.cover_letter_agent.generate_cover_letter(job_data, master_resume)
+                tailored_resume, cover_letter = await asyncio.gather(tailor_task, cover_task)
+                result["tailored_resume"] = tailored_resume
                 result["cover_letter"] = cover_letter
+            else:
+                tailored_resume = await self.tailoring_agent.tailor_resume(master_resume, job_data, analysis)
+                result["tailored_resume"] = tailored_resume
 
             # Stage 4: Application Preparation
             package = await self.assistant_agent.prepare_application_package(

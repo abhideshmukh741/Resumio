@@ -181,8 +181,8 @@ class BulkProcessingService:
                         bulk_run.processed_jobs += 1
                         db.commit()
 
-                    # Respect rate limits
-                    await asyncio.sleep(1.0)
+                    # Brief non-blocking buffer between items
+                    await asyncio.sleep(0.2)
 
             bulk_run.status = "completed"
             db.commit()
