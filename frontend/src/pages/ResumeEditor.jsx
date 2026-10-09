@@ -1861,7 +1861,10 @@ export default function ResumeEditor() {
                     {/* Summary */}
                     {enabledSections.summary && summary && (
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-1.5">Professional Summary</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">Professional Summary</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-1.5"></div>
+                        </div>
                         <p className="text-gray-800 text-justify leading-relaxed">{summary}</p>
                       </div>
                     )}
@@ -1869,7 +1872,10 @@ export default function ResumeEditor() {
                     {/* Education */}
                     {enabledSections.education && education && education.length > 0 && (
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-2">Education</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">Education</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-2"></div>
+                        </div>
                         {education.map((edu, idx) => (
                           <div key={idx} className="space-y-0.5 mb-2">
                             <div className="font-bold text-gray-900">{edu.degree}</div>
@@ -1887,7 +1893,10 @@ export default function ResumeEditor() {
                     {/* Work Experience */}
                     {enabledSections.experience && experience && experience.length > 0 && (
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-2">Work Experience</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">Work Experience</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-2"></div>
+                        </div>
                         {experience.map((exp, idx) => (
                           <div key={idx} className="mb-2 space-y-0.5">
                             <div className="font-bold text-gray-900 flex justify-between">
@@ -1895,8 +1904,13 @@ export default function ResumeEditor() {
                               {exp.duration && <span className="font-normal text-xs text-gray-700">{exp.duration}</span>}
                             </div>
                             {exp.bullets && (
-                              <ul className="list-disc list-inside text-xs text-gray-800 space-y-0.5 pl-1">
-                                {exp.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                              <ul className="space-y-1 text-xs text-gray-800 pt-0.5 pl-0.5">
+                                {exp.bullets.map((b, bIdx) => b.trim() && (
+                                  <li key={bIdx} className="flex items-start gap-2">
+                                    <span className="text-gray-900 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                    <span className="flex-1 leading-relaxed">{b}</span>
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           </div>
@@ -1907,7 +1921,10 @@ export default function ResumeEditor() {
                     {/* Technical Skills */}
                     {enabledSections.technicalSkills && technicalSkills && (
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-2">Technical Skills</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">Technical Skills</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-2"></div>
+                        </div>
                         <div className="space-y-1 text-xs">
                           {normalizeSkillsList(technicalSkills).map((item, idx) => (
                             item.skills ? (
@@ -1923,14 +1940,22 @@ export default function ResumeEditor() {
                     {/* Projects */}
                     {enabledSections.projects && projects && projects.length > 0 && (
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-2">Projects</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">Projects</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-2"></div>
+                        </div>
                         {projects.map((proj, idx) => (
                           <div key={idx} className="mb-3 space-y-1">
                             <div className="font-bold text-gray-900">{proj.title}</div>
                             {proj.technologies && <div className="italic text-xs text-gray-800">Technologies: {proj.technologies}</div>}
                             {proj.bullets && (
-                              <ul className="list-disc list-inside text-xs text-gray-800 space-y-1 pl-1">
-                                {proj.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                              <ul className="space-y-1 text-xs text-gray-800 pt-0.5 pl-0.5">
+                                {proj.bullets.map((b, bIdx) => b.trim() && (
+                                  <li key={bIdx} className="flex items-start gap-2">
+                                    <span className="text-gray-900 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                    <span className="flex-1 leading-relaxed">{b}</span>
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           </div>
@@ -1941,9 +1966,17 @@ export default function ResumeEditor() {
                     {/* Certifications */}
                     {enabledSections.certifications && certifications && (
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-1.5">Certifications</h2>
-                        <ul className="list-disc list-inside text-xs text-gray-800 space-y-1 pl-1">
-                          {(Array.isArray(certifications) ? certifications : certifications.split('\n')).map((cert, cIdx) => cert.trim() && <li key={cIdx}>{cert}</li>)}
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">Certifications</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-1.5"></div>
+                        </div>
+                        <ul className="space-y-1 text-xs text-gray-800 pt-0.5 pl-0.5">
+                          {(Array.isArray(certifications) ? certifications : certifications.split('\n')).map((cert, cIdx) => cert.trim() && (
+                            <li key={cIdx} className="flex items-start gap-2">
+                              <span className="text-gray-900 font-bold select-none leading-tight mt-[-1px]">•</span>
+                              <span className="flex-1 leading-relaxed">{cert}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
@@ -1951,7 +1984,10 @@ export default function ResumeEditor() {
                     {/* Custom Sections */}
                     {(customSections || []).map(sec => (
                       <div key={sec.id}>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-1.5">{sec.title}</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">{sec.title}</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-1.5"></div>
+                        </div>
                         <div className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">{sec.content}</div>
                       </div>
                     ))}
@@ -1959,7 +1995,10 @@ export default function ResumeEditor() {
                     {/* Strengths */}
                     {enabledSections.strengths && strengths && (
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-1.5">Strengths</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">Strengths</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-1.5"></div>
+                        </div>
                         <div className="text-xs text-gray-900">{(Array.isArray(strengths) ? strengths : strengths.split(',')).join(' — ')}</div>
                         {languages && <div className="text-xs text-gray-900 mt-1"><strong className="font-bold">Languages:</strong> {languages}</div>}
                       </div>
@@ -1968,7 +2007,10 @@ export default function ResumeEditor() {
                     {/* Hobbies */}
                     {enabledSections.hobbies && hobbies && (
                       <div>
-                        <h2 className="text-sm font-bold text-gray-900 border-b border-gray-400 pb-0.5 mb-1.5">Hobbies</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-sm font-bold text-gray-900 tracking-wide uppercase">Hobbies</h2>
+                          <div className="w-full h-[1px] bg-gray-400 mt-1 mb-1.5"></div>
+                        </div>
                         <div className="text-xs text-gray-900">{(Array.isArray(hobbies) ? hobbies : hobbies.split(',')).join(' — ')}</div>
                       </div>
                     )}
@@ -1977,8 +2019,8 @@ export default function ResumeEditor() {
 
                 {/* TEMPLATE 2: MODERN MINIMAL */}
                 {template === 'modern' && (
-                  <div className="font-sans space-y-5">
-                    <div className="border-b-2 border-blue-600 pb-4">
+                  <div className="font-sans space-y-4">
+                    <div className="border-b-2 border-blue-600 pb-3">
                       <h1 className="text-3xl font-bold text-gray-900">{personalInfo.name || 'Your Name'}</h1>
                       <div className="text-xs text-blue-600 font-semibold mt-1 flex flex-wrap items-center gap-2">
                         {personalInfo.email && (
@@ -2043,8 +2085,13 @@ export default function ResumeEditor() {
                               <span className="text-gray-500 font-normal">{exp.duration}</span>
                             </div>
                             {exp.bullets && (
-                              <ul className="list-disc list-inside text-gray-600 mt-0.5">
-                                {exp.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                              <ul className="space-y-1 text-xs text-gray-600 mt-1 pl-0.5">
+                                {exp.bullets.map((b, bIdx) => b.trim() && (
+                                  <li key={bIdx} className="flex items-start gap-2">
+                                    <span className="text-gray-400 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                    <span className="flex-1 leading-relaxed">{b}</span>
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           </div>
@@ -2073,8 +2120,13 @@ export default function ResumeEditor() {
                             <div className="font-bold text-gray-900">{p.title}</div>
                             <div className="text-gray-500 italic mb-1">{p.technologies}</div>
                             {p.bullets && (
-                              <ul className="list-disc list-inside text-gray-600">
-                                {p.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                              <ul className="space-y-1 text-xs text-gray-600 mt-1 pl-0.5">
+                                {p.bullets.map((b, bIdx) => b.trim() && (
+                                  <li key={bIdx} className="flex items-start gap-2">
+                                    <span className="text-gray-400 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                    <span className="flex-1 leading-relaxed">{b}</span>
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           </div>
@@ -2084,8 +2136,13 @@ export default function ResumeEditor() {
                     {enabledSections.certifications && certifications && (
                       <div>
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Certifications</h2>
-                        <ul className="list-disc list-inside text-xs text-gray-700">
-                          {(Array.isArray(certifications) ? certifications : certifications.split('\n')).map((c, i) => c.trim() && <li key={i}>{c}</li>)}
+                        <ul className="space-y-1 text-xs text-gray-700 pl-0.5">
+                          {(Array.isArray(certifications) ? certifications : certifications.split('\n')).map((c, i) => c.trim() && (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-gray-400 font-bold select-none leading-tight mt-[-1px]">•</span>
+                              <span className="flex-1 leading-relaxed">{c}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
@@ -2113,7 +2170,7 @@ export default function ResumeEditor() {
 
                 {/* TEMPLATE 3: EXECUTIVE SLATE */}
                 {template === 'executive' && (
-                  <div className="font-sans space-y-5">
+                  <div className="font-sans space-y-4">
                     <div className="bg-slate-900 text-white p-6 -mx-10 -mt-10 rounded-t-sm">
                       <h1 className="text-3xl font-extrabold tracking-wide uppercase">{personalInfo.name}</h1>
                       <div className="text-slate-300 text-xs mt-2 flex gap-3 flex-wrap items-center">
@@ -2154,13 +2211,19 @@ export default function ResumeEditor() {
                     </div>
                     {enabledSections.summary && summary && (
                       <div>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Summary</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Summary</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
                         <p className="text-gray-700 text-xs leading-relaxed">{summary}</p>
                       </div>
                     )}
                     {enabledSections.education && education && (
                       <div>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Education</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Education</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
                         {education.map((e, idx) => (
                           <div key={idx} className="text-xs mb-1">
                             <div className="font-bold text-slate-900">{e.degree}</div>
@@ -2171,7 +2234,10 @@ export default function ResumeEditor() {
                     )}
                     {enabledSections.experience && experience && experience.length > 0 && (
                       <div>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Work Experience</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Work Experience</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
                         {experience.map((exp, idx) => (
                           <div key={idx} className="mb-2 text-xs">
                             <div className="font-bold text-slate-900 flex justify-between">
@@ -2179,8 +2245,13 @@ export default function ResumeEditor() {
                               <span className="text-slate-500 font-normal">{exp.duration}</span>
                             </div>
                             {exp.bullets && (
-                              <ul className="list-disc list-inside text-gray-700 mt-0.5">
-                                {exp.bullets.map((b, i) => b.trim() && <li key={i}>{b}</li>)}
+                              <ul className="space-y-1 text-xs text-gray-700 mt-1 pl-0.5">
+                                {exp.bullets.map((b, i) => b.trim() && (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="text-slate-800 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                    <span className="flex-1 leading-relaxed">{b}</span>
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           </div>
@@ -2189,7 +2260,10 @@ export default function ResumeEditor() {
                     )}
                     {enabledSections.technicalSkills && technicalSkills && (
                       <div>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Technical Skills</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Technical Skills</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
                         <div className="text-xs text-gray-700 space-y-0.5">
                           {normalizeSkillsList(technicalSkills).map((item, idx) => (
                             item.skills ? (
@@ -2203,14 +2277,22 @@ export default function ResumeEditor() {
                     )}
                     {enabledSections.projects && projects && (
                       <div>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Projects</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Projects</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
                         {projects.map((p, idx) => (
                           <div key={idx} className="mb-2 text-xs">
                             <div className="font-bold text-slate-900">{p.title}</div>
                             <div className="text-slate-500 italic mb-1">{p.technologies}</div>
                             {p.bullets && (
-                              <ul className="list-disc list-inside text-gray-700">
-                                {p.bullets.map((b, i) => b.trim() && <li key={i}>{b}</li>)}
+                              <ul className="space-y-1 text-xs text-gray-700 mt-1 pl-0.5">
+                                {p.bullets.map((b, i) => b.trim() && (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="text-slate-800 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                    <span className="flex-1 leading-relaxed">{b}</span>
+                                  </li>
+                                ))}
                               </ul>
                             )}
                           </div>
@@ -2219,28 +2301,45 @@ export default function ResumeEditor() {
                     )}
                     {enabledSections.certifications && certifications && (
                       <div>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Certifications</h2>
-                        <ul className="list-disc list-inside text-xs text-gray-700">
-                          {(Array.isArray(certifications) ? certifications : certifications.split('\n')).map((c, i) => c.trim() && <li key={i}>{c}</li>)}
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Certifications</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
+                        <ul className="space-y-1 text-xs text-gray-700 pl-0.5">
+                          {(Array.isArray(certifications) ? certifications : certifications.split('\n')).map((c, i) => c.trim() && (
+                            <li key={i} className="flex items-start gap-2">
+                              <span className="text-slate-800 font-bold select-none leading-tight mt-[-1px]">•</span>
+                              <span className="flex-1 leading-relaxed">{c}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
                     {(customSections || []).map(sec => (
                       <div key={sec.id}>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">{sec.title}</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">{sec.title}</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
                         <div className="text-xs text-gray-700 whitespace-pre-wrap">{sec.content}</div>
                       </div>
                     ))}
                     {enabledSections.strengths && strengths && (
                       <div>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Strengths & Languages</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Strengths & Languages</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
                         <div className="text-xs text-gray-700">{(Array.isArray(strengths) ? strengths : strengths.split(',')).join(' • ')}</div>
                         {languages && <div className="text-xs text-gray-700 mt-0.5">Languages: {languages}</div>}
                       </div>
                     )}
                     {enabledSections.hobbies && hobbies && (
                       <div>
-                        <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest border-b-2 border-slate-800 pb-1 mb-2">Hobbies</h2>
+                        <div className="mb-1.5">
+                          <h2 className="text-xs font-bold text-slate-800 uppercase tracking-widest">Hobbies</h2>
+                          <div className="w-full h-[2px] bg-slate-800 mt-1 mb-1.5"></div>
+                        </div>
                         <div className="text-xs text-gray-700">{(Array.isArray(hobbies) ? hobbies : hobbies.split(',')).join(' • ')}</div>
                       </div>
                     )}
@@ -2314,16 +2413,22 @@ export default function ResumeEditor() {
                         </div>
                       )}
                     </div>
-                    <div className="w-2/3 p-8 space-y-5 bg-white">
+                    <div className="w-2/3 p-8 space-y-4 bg-white">
                       {enabledSections.summary && summary && (
                         <div>
-                          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">Summary</h2>
+                          <div className="mb-1.5">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Summary</h2>
+                            <div className="w-full h-[2px] bg-purple-600 mt-1 mb-1.5"></div>
+                          </div>
                           <p className="text-xs text-gray-700 leading-relaxed">{summary}</p>
                         </div>
                       )}
                       {enabledSections.education && education && (
                         <div>
-                          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">Education</h2>
+                          <div className="mb-1.5">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Education</h2>
+                            <div className="w-full h-[2px] bg-purple-600 mt-1 mb-1.5"></div>
+                          </div>
                           {education.map((e, idx) => (
                             <div key={idx} className="text-xs mb-2">
                               <div className="font-bold text-gray-900">{e.degree}</div>
@@ -2334,7 +2439,10 @@ export default function ResumeEditor() {
                       )}
                       {enabledSections.experience && experience && experience.length > 0 && (
                         <div>
-                          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">Work Experience</h2>
+                          <div className="mb-1.5">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Work Experience</h2>
+                            <div className="w-full h-[2px] bg-purple-600 mt-1 mb-1.5"></div>
+                          </div>
                           {experience.map((exp, idx) => (
                             <div key={idx} className="text-xs mb-2">
                               <div className="font-bold text-gray-900 flex justify-between">
@@ -2342,8 +2450,13 @@ export default function ResumeEditor() {
                                 <span className="text-gray-500 font-normal">{exp.duration}</span>
                               </div>
                               {exp.bullets && (
-                                <ul className="list-disc list-inside text-gray-600 mt-0.5">
-                                  {exp.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                                <ul className="space-y-1 text-xs text-gray-600 mt-1 pl-0.5">
+                                  {exp.bullets.map((b, bIdx) => b.trim() && (
+                                    <li key={bIdx} className="flex items-start gap-2">
+                                      <span className="text-purple-600 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                      <span className="flex-1 leading-relaxed">{b}</span>
+                                    </li>
+                                  ))}
                                 </ul>
                               )}
                             </div>
@@ -2352,14 +2465,22 @@ export default function ResumeEditor() {
                       )}
                       {enabledSections.projects && projects && (
                         <div>
-                          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">Projects</h2>
+                          <div className="mb-1.5">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Projects</h2>
+                            <div className="w-full h-[2px] bg-purple-600 mt-1 mb-1.5"></div>
+                          </div>
                           {projects.map((p, idx) => (
                             <div key={idx} className="text-xs mb-2">
                               <div className="font-bold text-gray-900">{p.title}</div>
                               <div className="text-gray-500 italic mb-1">{p.technologies}</div>
                               {p.bullets && (
-                                <ul className="list-disc list-inside text-gray-600">
-                                  {p.bullets.map((b, bIdx) => b.trim() && <li key={bIdx}>{b}</li>)}
+                                <ul className="space-y-1 text-xs text-gray-600 mt-1 pl-0.5">
+                                  {p.bullets.map((b, bIdx) => b.trim() && (
+                                    <li key={bIdx} className="flex items-start gap-2">
+                                      <span className="text-purple-600 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                      <span className="flex-1 leading-relaxed">{b}</span>
+                                    </li>
+                                  ))}
                                 </ul>
                               )}
                             </div>
@@ -2368,15 +2489,26 @@ export default function ResumeEditor() {
                       )}
                       {enabledSections.certifications && certifications && (
                         <div>
-                          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">Certifications</h2>
-                          <ul className="list-disc list-inside text-xs text-gray-700">
-                            {(Array.isArray(certifications) ? certifications : certifications.split('\n')).map((c, i) => c.trim() && <li key={i}>{c}</li>)}
+                          <div className="mb-1.5">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">Certifications</h2>
+                            <div className="w-full h-[2px] bg-purple-600 mt-1 mb-1.5"></div>
+                          </div>
+                          <ul className="space-y-1 text-xs text-gray-700 pl-0.5">
+                            {(Array.isArray(certifications) ? certifications : certifications.split('\n')).map((c, i) => c.trim() && (
+                              <li key={i} className="flex items-start gap-2">
+                                <span className="text-purple-600 font-bold select-none leading-tight mt-[-1px]">•</span>
+                                <span className="flex-1 leading-relaxed">{c}</span>
+                              </li>
+                            ))}
                           </ul>
                         </div>
                       )}
                       {(customSections || []).map(sec => (
                         <div key={sec.id}>
-                          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest border-b-2 border-purple-600 pb-1 mb-2">{sec.title}</h2>
+                          <div className="mb-1.5">
+                            <h2 className="text-xs font-bold text-gray-900 uppercase tracking-widest">{sec.title}</h2>
+                            <div className="w-full h-[2px] bg-purple-600 mt-1 mb-1.5"></div>
+                          </div>
                           <div className="text-xs text-gray-700 whitespace-pre-wrap">{sec.content}</div>
                         </div>
                       ))}
