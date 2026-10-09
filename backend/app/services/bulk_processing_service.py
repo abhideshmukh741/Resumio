@@ -42,7 +42,7 @@ class BulkProcessingService:
         run_id: int,
         user_id: int,
         min_match_score: int = 50,
-        auto_cover_letters: bool = True
+        auto_cover_letters: bool = False  # Disabled by default — cover letters skipped for speed
     ):
         """
         Background task executing Agno agents for all queued jobs in a bulk run.

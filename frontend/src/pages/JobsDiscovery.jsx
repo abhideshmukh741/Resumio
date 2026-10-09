@@ -7,11 +7,9 @@ import {
   DollarSign, 
   Sparkles, 
   FileText, 
-  Mail, 
   PlusCircle, 
   CheckCircle2, 
   AlertTriangle, 
-  ArrowUpRight, 
   Filter, 
   Loader2,
   Globe,
@@ -38,7 +36,6 @@ export default function JobsDiscovery() {
 
   // Action status
   const [tailoringJobId, setTailoringJobId] = useState(null);
-  const [generatingLetterId, setGeneratingLetterId] = useState(null);
   const [trackingJobId, setTrackingJobId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -141,18 +138,11 @@ export default function JobsDiscovery() {
     }
   };
 
-  const handleGenerateCoverLetter = async (job) => {
-    setGeneratingLetterId(job.id);
-    try {
-      await api.post(`/api/jobs/${job.id}/cover-letter`, {});
-      showToast(`Cover Letter generated for ${job.company}!`);
-      navigate('/cover-letters');
-    } catch (err) {
-      console.error('Error generating cover letter:', err);
-      showToast('Failed to generate cover letter.');
-    } finally {
-      setGeneratingLetterId(null);
-    }
+  // Build the best apply URL: use job.url if available, else fallback to LinkedIn/Google search
+  const getApplyUrl = (job) => {
+    if (job.url && job.url.startsWith('http')) return job.url;
+    const query = encodeURIComponent(`${job.title} ${job.company}`);
+    return `https://www.linkedin.com/jobs/search/?keywords=${query}`;
   };
 
   const handleTrackApplication = async (job) => {
@@ -338,73 +328,57 @@ export default function JobsDiscovery() {
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Apply Button — always visible, uses real URL or LinkedIn fallback */}
+                  <a
+                    href={getApplyUrl(job)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-sm rounded-xl shadow-sm transition"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Apply Now →</span>
+                  </a>
+
+                  <div className="grid grid-cols-3 gap-2">
                     <button
                       onClick={() => handleAnalyzeMatch(job)}
                       disabled={analyzingJobId === job.id}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-xl border border-blue-200 transition"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-xl border border-blue-200 transition"
                     >
                       {analyzingJobId === job.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Target className="w-3.5 h-3.5" />
                       )}
-                      <span>ATS Match</span>
+                      <span>ATS</span>
                     </button>
 
                     <button
                       onClick={() => handleTailorResume(job)}
                       disabled={tailoringJobId === job.id}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition shadow-sm"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition shadow-sm"
                     >
                       {tailoringJobId === job.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <FileText className="w-3.5 h-3.5" />
                       )}
-                      <span>Tailor Resume</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleGenerateCoverLetter(job)}
-                      disabled={generatingLetterId === job.id}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition"
-                    >
-                      {generatingLetterId === job.id ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Mail className="w-3.5 h-3.5" />
-                      )}
-                      <span>Cover Letter</span>
+                      <span>Tailor</span>
                     </button>
 
                     <button
                       onClick={() => handleTrackApplication(job)}
                       disabled={trackingJobId === job.id}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition"
                     >
                       {trackingJobId === job.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <PlusCircle className="w-3.5 h-3.5" />
                       )}
-                      <span>Track Job</span>
+                      <span>Track</span>
                     </button>
                   </div>
-
-                  {job.url && (
-                    <a
-                      href={job.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition mt-1"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      <span>Apply on Official Portal</span>
-                    </a>
-                  )}
                 </div>
               </div>
             ))}
@@ -515,16 +489,17 @@ export default function JobsDiscovery() {
                     <FileText className="w-4 h-4" />
                     <span>Auto-Tailor Resume Now</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      setAnalysisModalOpen(false);
-                      handleGenerateCoverLetter(selectedJob);
-                    }}
-                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-2"
-                  >
-                    <Mail className="w-4 h-4" />
-                    <span>Generate Cover Letter</span>
-                  </button>
+                  {selectedJob && (
+                    <a
+                      href={getApplyUrl(selectedJob)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-2"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Apply Now →</span>
+                    </a>
+                  )}
                 </div>
               </div>
             ) : null}
