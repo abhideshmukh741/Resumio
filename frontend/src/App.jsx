@@ -9,6 +9,10 @@ import KeywordOptimizer from './pages/KeywordOptimizer';
 import ProjectOptimizer from './pages/ProjectOptimizer';
 import QuickEdit from './pages/QuickEdit';
 import ResumeVersions from './pages/ResumeVersions';
+import JobsDiscovery from './pages/JobsDiscovery';
+import BulkProcessing from './pages/BulkProcessing';
+import ApplicationsTracker from './pages/ApplicationsTracker';
+import CoverLetters from './pages/CoverLetters';
 
 const PrivateRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -24,6 +28,10 @@ function App() {
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={<Dashboard />} />
           <Route path="editor" element={<ResumeEditor />} />
+          <Route path="jobs" element={<JobsDiscovery />} />
+          <Route path="bulk-processing" element={<BulkProcessing />} />
+          <Route path="applications" element={<ApplicationsTracker />} />
+          <Route path="cover-letters" element={<CoverLetters />} />
           <Route path="optimize-job" element={<KeywordOptimizer />} />
           <Route path="optimize-project" element={<ProjectOptimizer />} />
           <Route path="quick-edit" element={<QuickEdit />} />

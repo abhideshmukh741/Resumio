@@ -1,0 +1,543 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { 
+  Search, 
+  MapPin, 
+  Briefcase, 
+  DollarSign, 
+  Sparkles, 
+  FileText, 
+  Mail, 
+  PlusCircle, 
+  CheckCircle2, 
+  AlertTriangle, 
+  ArrowUpRight, 
+  Filter, 
+  Loader2,
+  Globe,
+  Building,
+  Target
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+export default function JobsDiscovery() {
+  const navigate = useNavigate();
+  const [jobs, setJobs] = useState([]);
+  const [search, setSearch] = useState('');
+  const [location, setLocation] = useState('');
+  const [workArrangement, setWorkArrangement] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [discovering, setDiscovering] = useState(false);
+  
+  // Selected Job for Analysis Modal
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [analyzingJobId, setAnalyzingJobId] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [analysisModalOpen, setAnalysisModalOpen] = useState(false);
+
+  // Action status
+  const [tailoringJobId, setTailoringJobId] = useState(null);
+  const [generatingLetterId, setGeneratingLetterId] = useState(null);
+  const [trackingJobId, setTrackingJobId] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [workArrangement]);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const fetchJobs = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const params = {
+        limit: 50,
+        work_arrangement: workArrangement !== 'all' ? workArrangement : undefined
+      };
+      if (search) params.search = search;
+      if (location) params.location = location;
+
+      const res = await axios.get(`${API_BASE_URL}/api/jobs`, {
+        params,
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setJobs(res.data || []);
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+      showToast('Error loading job listings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    fetchJobs();
+  };
+
+  const handleDiscoverLive = async () => {
+    setDiscovering(true);
+    try {
+      const token = localStorage.getItem('token');
+      const query = search || 'Python';
+      const res = await axios.post(
+        `${API_BASE_URL}/api/jobs/discover`,
+        { query, location: location || 'remote', limit: 8 },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      showToast(`Discovered ${res.data?.length || 0} opportunities!`);
+      fetchJobs();
+    } catch (err) {
+      console.error('Discovery error:', err);
+      showToast('Discovery fetch completed.');
+      fetchJobs();
+    } finally {
+      setDiscovering(false);
+    }
+  };
+
+  const handleAnalyzeMatch = async (job) => {
+    setSelectedJob(job);
+    setAnalyzingJobId(job.id);
+    setAnalysisModalOpen(true);
+    setAnalysisResult(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${API_BASE_URL}/api/jobs/${job.id}/analyze`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAnalysisResult(res.data);
+    } catch (err) {
+      console.error('Error analyzing job match:', err);
+      showToast('Failed to analyze match.');
+    } finally {
+      setAnalyzingJobId(null);
+    }
+  };
+
+  const handleTailorResume = async (job) => {
+    setTailoringJobId(job.id);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        `${API_BASE_URL}/api/jobs/${job.id}/tailor-resume`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      showToast(`Tailored resume saved: "${res.data.version_name}"`);
+      navigate('/versions');
+    } catch (err) {
+      console.error('Error tailoring resume:', err);
+      showToast('Failed to tailor resume.');
+    } finally {
+      setTailoringJobId(null);
+    }
+  };
+
+  const handleGenerateCoverLetter = async (job) => {
+    setGeneratingLetterId(job.id);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${API_BASE_URL}/api/jobs/${job.id}/cover-letter`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      showToast(`Cover Letter generated for ${job.company}!`);
+      navigate('/cover-letters');
+    } catch (err) {
+      console.error('Error generating cover letter:', err);
+      showToast('Failed to generate cover letter.');
+    } finally {
+      setGeneratingLetterId(null);
+    }
+  };
+
+  const handleTrackApplication = async (job) => {
+    setTrackingJobId(job.id);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${API_BASE_URL}/api/applications`,
+        { job_id: job.id, status: 'ready_to_apply', submission_type: 'assisted' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      showToast(`Added ${job.title} to Applications Tracker!`);
+    } catch (err) {
+      console.error('Error tracking application:', err);
+      showToast('Failed to track application.');
+    } finally {
+      setTrackingJobId(null);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50/50 p-6 md:p-10 font-sans">
+      {/* Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-slate-700 animate-in fade-in slide-in-from-bottom-5">
+          <Sparkles className="w-5 h-5 text-blue-400" />
+          <span className="text-sm font-medium">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="max-w-7xl mx-auto mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full mb-2">
+            <Globe className="w-3.5 h-3.5" />
+            <span>Agno Autonomous Job Discovery</span>
+          </div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Job Opportunities Hub</h1>
+          <p className="text-slate-600 text-sm mt-1">Discover, analyze ATS match score, tailor dedicated resumes, and dispatch applications.</p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/bulk-processing')}
+            className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-sm rounded-xl shadow-sm hover:shadow-md hover:from-blue-700 hover:to-indigo-700 transition"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Launch Bulk AI Agent</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="max-w-7xl mx-auto bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-slate-200/80 mb-8">
+        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <input
+              type="text"
+              placeholder="Job title, role, skill (e.g. Python, React)..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            />
+          </div>
+
+          <div className="relative">
+            <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <input
+              type="text"
+              placeholder="Location or 'Remote'..."
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+            />
+          </div>
+
+          <div>
+            <select
+              value={workArrangement}
+              onChange={(e) => setWorkArrangement(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-slate-700"
+            >
+              <option value="all">All Work Arrangements</option>
+              <option value="remote">Remote Only</option>
+              <option value="hybrid">Hybrid</option>
+              <option value="on-site">On-site</option>
+            </select>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-sm rounded-xl py-2.5 transition flex items-center justify-center gap-2 shadow-sm"
+            >
+              <Filter className="w-4 h-4" />
+              <span>Filter</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscoverLive}
+              disabled={discovering}
+              className="px-4 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-semibold text-sm rounded-xl py-2.5 transition flex items-center justify-center gap-2"
+              title="Fetch new live tech job postings via Agno Discovery Agent"
+            >
+              {discovering ? <Loader2 className="w-4 h-4 animate-spin text-blue-600" /> : <Globe className="w-4 h-4" />}
+              <span className="hidden lg:inline">{discovering ? 'Fetching...' : 'Live Fetch'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Jobs Grid */}
+      <div className="max-w-7xl mx-auto">
+        {loading ? (
+          <div className="py-20 flex flex-col items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-3" />
+            <p className="text-slate-600 text-sm font-medium">Scanning job databases with Agno Intelligence...</p>
+          </div>
+        ) : jobs.length === 0 ? (
+          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200 max-w-xl mx-auto">
+            <Briefcase className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+            <h3 className="text-lg font-bold text-slate-800">No Jobs Found</h3>
+            <p className="text-slate-500 text-sm mt-1">Try adjusting your keyword filter or click "Live Fetch" to scan online listings.</p>
+            <button
+              onClick={handleDiscoverLive}
+              className="mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl"
+            >
+              Discover Live Listings
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {jobs.map((job) => (
+              <div
+                key={job.id}
+                className="bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all duration-200 p-6 flex flex-col justify-between group"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition leading-snug">
+                        {job.title}
+                      </h3>
+                      <p className="text-sm font-semibold text-slate-700 mt-0.5 flex items-center gap-1.5">
+                        <Building className="w-3.5 h-3.5 text-slate-400" />
+                        {job.company}
+                      </p>
+                    </div>
+                    <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
+                      job.work_arrangement === 'remote' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                      job.work_arrangement === 'hybrid' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                      'bg-slate-100 text-slate-700 border border-slate-200'
+                    }`}>
+                      {job.work_arrangement}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 text-xs text-slate-500 mt-3 mb-4">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                      {job.location}
+                    </span>
+                    {job.salary_range && (
+                      <span className="flex items-center gap-1 text-slate-700 font-medium">
+                        <DollarSign className="w-3.5 h-3.5 text-slate-400" />
+                        {job.salary_range}
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-4">
+                    {job.description}
+                  </p>
+
+                  {job.requirements && (
+                    <div className="bg-slate-50 rounded-xl p-3 mb-4 border border-slate-100">
+                      <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Key Requirements</div>
+                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                        {job.requirements}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleAnalyzeMatch(job)}
+                      disabled={analyzingJobId === job.id}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs rounded-xl border border-blue-200 transition"
+                    >
+                      {analyzingJobId === job.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Target className="w-3.5 h-3.5" />
+                      )}
+                      <span>ATS Match</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleTailorResume(job)}
+                      disabled={tailoringJobId === job.id}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition shadow-sm"
+                    >
+                      {tailoringJobId === job.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <FileText className="w-3.5 h-3.5" />
+                      )}
+                      <span>Tailor Resume</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleGenerateCoverLetter(job)}
+                      disabled={generatingLetterId === job.id}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition"
+                    >
+                      {generatingLetterId === job.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Mail className="w-3.5 h-3.5" />
+                      )}
+                      <span>Cover Letter</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleTrackApplication(job)}
+                      disabled={trackingJobId === job.id}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition"
+                    >
+                      {trackingJobId === job.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <PlusCircle className="w-3.5 h-3.5" />
+                      )}
+                      <span>Track Job</span>
+                    </button>
+                  </div>
+
+                  {job.url && (
+                    <a
+                      href={job.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-center text-xs text-blue-600 hover:text-blue-800 font-medium pt-1"
+                    >
+                      View External Posting <ArrowUpRight className="w-3 h-3 inline" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Match Analysis Modal */}
+      {analysisModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 md:p-8 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95">
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div>
+                <div className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Agno Job Analysis Agent</div>
+                <h2 className="text-2xl font-black text-slate-900">
+                  {selectedJob?.title}
+                </h2>
+                <p className="text-sm font-semibold text-slate-600">{selectedJob?.company} • {selectedJob?.location}</p>
+              </div>
+              <button
+                onClick={() => setAnalysisModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            {analyzingJobId ? (
+              <div className="py-16 text-center">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mx-auto mb-4" />
+                <h4 className="text-base font-bold text-slate-800">Job Analysis Agent is Evaluating Your Profile</h4>
+                <p className="text-slate-500 text-xs mt-1">Cross-referencing technical skills, eligibility rules, and ATS keywords...</p>
+              </div>
+            ) : analysisResult ? (
+              <div className="space-y-6">
+                {/* Score & Verdict Card */}
+                <div className="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-2xl p-6 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Overall ATS Score</div>
+                    <div className="text-4xl font-black text-white mt-1">
+                      {analysisResult.match_score}<span className="text-xl font-normal text-indigo-300">/100</span>
+                    </div>
+                    <div className="text-sm font-semibold text-indigo-200 mt-1">{analysisResult.match_verdict}</div>
+                  </div>
+                  <div className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border ${
+                    analysisResult.eligibility_status === 'eligible' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30' :
+                    analysisResult.eligibility_status === 'warning' ? 'bg-amber-500/20 text-amber-300 border-amber-400/30' :
+                    'bg-rose-500/20 text-rose-300 border-rose-400/30'
+                  }`}>
+                    {analysisResult.eligibility_status}
+                  </div>
+                </div>
+
+                {/* Matched Skills */}
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    Matched Technical Skills ({analysisResult.matched_skills?.length || 0})
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {analysisResult.matched_skills?.map((s, idx) => (
+                      <span key={idx} className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Missing Skills */}
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    Missing Target Keywords ({analysisResult.missing_skills?.length || 0})
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
+                    {analysisResult.missing_skills?.map((s, idx) => (
+                      <span key={idx} className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recommendations */}
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">
+                    Strategic Optimization Recommendations
+                  </h4>
+                  <ul className="space-y-2">
+                    {analysisResult.recommendations?.map((r, idx) => (
+                      <li key={idx} className="text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-200/80 flex items-start gap-2">
+                        <span className="text-blue-600 font-bold">•</span>
+                        <span>{r}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Modal Action Buttons */}
+                <div className="pt-4 border-t border-slate-200 flex flex-col sm:flex-row gap-3 justify-end">
+                  <button
+                    onClick={() => {
+                      setAnalysisModalOpen(false);
+                      handleTailorResume(selectedJob);
+                    }}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    <span>Auto-Tailor Resume Now</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAnalysisModalOpen(false);
+                      handleGenerateCoverLetter(selectedJob);
+                    }}
+                    className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-sm flex items-center justify-center gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Generate Cover Letter</span>
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
