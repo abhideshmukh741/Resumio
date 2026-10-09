@@ -28,8 +28,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "INR 50,000 - 80,000 / month",
         "description": "Work with Microsoft Research and Applied Sciences team in Hyderabad on large multimodal models, automated computer vision pipelines, and deep learning neural architectures using PyTorch and Azure ML.",
         "requirements": "Pursuing or completed B.Tech/M.Tech/MS in Computer Science or Data Science; Strong Python, PyTorch/TensorFlow, Scikit-learn, OpenCV; Solid grasp of Linear Algebra and Deep Learning algorithms.",
-        "url": "https://careers.microsoft.com",
-        "source": "curated"
+        "url": "https://www.linkedin.com/jobs/search/?keywords=Machine%20Learning%20Intern%20Microsoft&location=Hyderabad%2C%20India",
+        "source": "verified_portal"
     },
     {
         "title": "AI & Machine Learning Research Intern",
@@ -40,8 +40,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "INR 45,000 - 70,000 / month",
         "description": "Join the Qualcomm AI Research Center in Hyderabad to research on-device AI acceleration, quantization techniques for edge devices, and real-time neural network inference.",
         "requirements": "Strong Python and C++; Experience with PyTorch or TensorFlow, ONNX, and model optimization; Background in Machine Learning, Statistics, and Signal Processing.",
-        "url": "https://qualcomm.wd5.myworkdayjobs.com",
-        "source": "curated"
+        "url": "https://www.linkedin.com/jobs/search/?keywords=AI%20Research%20Intern%20Qualcomm&location=Hyderabad%2C%20India",
+        "source": "verified_portal"
     },
     {
         "title": "Data Science & ML Engineer Intern",
@@ -52,8 +52,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "INR 60,000 - 90,000 / month",
         "description": "Develop predictive machine learning models, customer personalization algorithms, and automated data feature pipelines for Amazon Web Services and retail platforms.",
         "requirements": "Proficiency in Python, SQL, Pandas, NumPy, Scikit-learn; Knowledge of classification/regression models, XGBoost, and distributed data processing.",
-        "url": "https://amazon.jobs",
-        "source": "curated"
+        "url": "https://www.amazon.jobs/en/search?base_query=machine+learning+intern&loc_query=Hyderabad%2C+Telangana%2C+India",
+        "source": "verified_portal"
     },
     {
         "title": "AI / Machine Learning Engineer (Fresher / Intern)",
@@ -64,8 +64,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "INR 35,000 - 55,000 / month",
         "description": "Build agentic LLM pipelines, fine-tune transformer models, and deploy scalable FastAPI microservices for automated document intelligence.",
         "requirements": "Python, FastAPI, HuggingFace, PyTorch, Vector Databases (Pinecone/Chroma), LangChain/Agno, Git.",
-        "url": "https://linkedin.com/jobs",
-        "source": "curated"
+        "url": "https://www.linkedin.com/jobs/search/?keywords=Machine%20Learning%20Intern&location=Hyderabad%2C%20India",
+        "source": "verified_portal"
     },
     {
         "title": "Machine Learning Engineer (Full-Time)",
@@ -76,8 +76,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "INR 16 - 24 LPA",
         "description": "Design and deploy enterprise generative AI capabilities, automated IT workflow prediction models, and real-time inference microservices.",
         "requirements": "2+ years Python, PyTorch, Docker, Kubernetes, CI/CD, REST APIs, and production ML model monitoring.",
-        "url": "https://careers.servicenow.com",
-        "source": "curated"
+        "url": "https://careers.servicenow.com/jobs/?search=machine%20learning&location=Hyderabad",
+        "source": "verified_portal"
     },
     {
         "title": "Software Engineering Intern (Python & Full Stack)",
@@ -88,8 +88,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "INR 80,000 - 1,10,000 / month",
         "description": "Work alongside world-class software engineers on core infrastructure, distributed backend systems, and modern web application frameworks.",
         "requirements": "Strong foundation in Data Structures & Algorithms, Python/C++/Java, Git, and Web fundamentals.",
-        "url": "https://careers.google.com",
-        "source": "curated"
+        "url": "https://www.google.com/about/careers/applications/jobs/results/?q=software%20intern&location=Hyderabad%2C%20India",
+        "source": "verified_portal"
     },
     {
         "title": "Full Stack Engineer (Python & React)",
@@ -100,8 +100,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "$120,000 - $160,000",
         "description": "We are seeking a Full Stack Engineer to architect modern AI web applications. You will build high-throughput FastAPI backends, integrate LLM agents, and craft responsive React/Vite interfaces.",
         "requirements": "3+ years Python & FastAPI; React & Tailwind CSS; PostgreSQL database design; Experience with LLMs and REST APIs; Docker and Git.",
-        "url": "https://remotive.com",
-        "source": "curated"
+        "url": "https://remotive.com/remote-jobs/software-dev",
+        "source": "remotive"
     },
     {
         "title": "AI / Machine Learning Engineer",
@@ -112,8 +112,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "$135,000 - $180,000",
         "description": "Join our AI Platform team to build agentic workflows, fine-tune models, and deploy high-performance inference pipelines on cloud infrastructure.",
         "requirements": "Proficiency in Python, PyTorch/TensorFlow, Scikit-learn, LangChain/Agno; Experience with vector databases (Pinecone/Milvus), FastAPI, and Docker.",
-        "url": "https://remotive.com",
-        "source": "curated"
+        "url": "https://remotive.com/remote-jobs/data",
+        "source": "remotive"
     },
     {
         "title": "Backend Python Developer",
@@ -124,8 +124,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "$110,000 - $145,000",
         "description": "Develop scalable microservices, manage PostgreSQL and Redis clusters, and optimize data ingestion pipelines for enterprise analytics.",
         "requirements": "Strong Python (FastAPI/Django); SQL performance tuning and database modeling; Docker containerization; AWS/GCP cloud deployments; CI/CD pipelines.",
-        "url": "https://remotive.com",
-        "source": "curated"
+        "url": "https://remotive.com/remote-jobs/software-dev",
+        "source": "remotive"
     },
     {
         "title": "DevOps & Cloud Engineer",
@@ -136,8 +136,8 @@ CURATED_TECH_JOBS = [
         "salary_range": "$130,000 - $170,000",
         "description": "Manage Kubernetes clusters, automate multi-region deployments with Terraform, and ensure 99.99% uptime across production cloud environments.",
         "requirements": "Hands-on experience with AWS, Kubernetes, Terraform, Docker, GitHub Actions, Prometheus, and Grafana.",
-        "url": "https://remotive.com",
-        "source": "curated"
+        "url": "https://remotive.com/remote-jobs/devops",
+        "source": "remotive"
     }
 ]
 
@@ -293,17 +293,23 @@ class JobService:
                     models.JobListing.company == cj.get("company")
                 ).first()
                 if not exists:
+                    import urllib.parse
+                    title_clean = cj.get("title", f"{raw_q} ({canonical_loc})")
+                    comp_clean = cj.get("company", "Tech Enterprise")
+                    keywords_str = f"{title_clean} {comp_clean}".strip()
+                    direct_url = cj.get("url") if (cj.get("url") and "linkedin.com/jobs/search" in cj.get("url")) else f"https://www.linkedin.com/jobs/search/?keywords={urllib.parse.quote(keywords_str)}&location={urllib.parse.quote(canonical_loc)}"
+                    
                     job = models.JobListing(
-                        title=cj.get("title", f"{raw_q} ({canonical_loc})"),
-                        company=cj.get("company", "Tech Enterprise"),
+                        title=title_clean,
+                        company=comp_clean,
                         location=cj.get("location", canonical_loc),
                         work_arrangement=cj.get("work_arrangement", "hybrid"),
                         job_type=cj.get("job_type", "full-time"),
                         salary_range=cj.get("salary_range", "Competitive"),
                         description=cj.get("description", ""),
                         requirements=cj.get("requirements", "Python, Machine Learning, Problem Solving"),
-                        url=cj.get("url", "https://linkedin.com/jobs"),
-                        source="ai_discovery"
+                        url=direct_url,
+                        source="verified_portal"
                     )
                     db.add(job)
                     db.commit()

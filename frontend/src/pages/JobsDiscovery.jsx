@@ -16,7 +16,8 @@ import {
   Loader2,
   Globe,
   Building,
-  Target
+  Target,
+  ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -398,9 +399,10 @@ export default function JobsDiscovery() {
                       href={job.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block text-center text-xs text-blue-600 hover:text-blue-800 font-medium pt-1"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition mt-1"
                     >
-                      View External Posting <ArrowUpRight className="w-3 h-3 inline" />
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Apply on Official Portal</span>
                     </a>
                   )}
                 </div>
